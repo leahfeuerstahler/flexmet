@@ -93,7 +93,7 @@ hb_res <- hb_link(bmat1 = fmp0_1$bmat[1:5, ],
 \references{
 Feuerstahler, L. M. (2016). \emph{Exploring alternate latent trait metrics
 with the filtered monotonic polynomial IRT model} (Unpublished dissertation).
-University of Minnesota, Minneapolis, MN. \doi{11299/182267}
+University of Minnesota, Minneapolis, MN. \url{http://hdl.handle.net/11299/182267}
 
 Haebara, T. (1980). Equating logistic ability scales by a weighted least
 squares method. \emph{Japanese Psychological Research}, \emph{22}, 144--149.

@@ -147,7 +147,7 @@ the context of guessing. \emph{Journal of Educational Measurement},
 
 Feuerstahler, L. M. (2016). \emph{Exploring alternate latent trait metrics
 with the filtered monotonic polynomial IRT model} (Unpublished dissertation).
-University of Minnesota, Minneapolis, MN. \doi{11299/182267}
+University of Minnesota, Minneapolis, MN. \url{http://hdl.handle.net/11299/182267}
 
 Liang, L. (2007). \emph{A semi-parametric approach to estimating item
 response functions} (Unpublished dissertation). The Ohio

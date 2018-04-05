@@ -7,7 +7,7 @@ Authors@R: person("Leah", "Feuerstahler", email = "feuer024@umn.edu",
 Description: Application of the filtered monotonic polynomial (FMP) item response
     model to flexibly fit item response models. The package includes tools that
     allow the item response model to be build on any monotonic transformation of
-    the latent trait metric, as described by Feuerstahler (2016) <doi:11299/182267>.
+    the latent trait metric, as described by Feuerstahler (2016) <http://hdl.handle.net/11299/182267>.
 License: GPL-3
 Suggests: MonoPoly,
     knitr,
