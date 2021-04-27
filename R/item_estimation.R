@@ -24,7 +24,7 @@
 #' item 2, and so forth. For further help, first fit the model without start
 #' values, then inspect the outputted parmat data frame.
 #'
-#' @param em Logical, use random-effects estimation using the EM algorith? If
+#' @param em Logical, use random-effects estimation using the EM algorithm? If
 #' FALSE, fixed effects estimation is used with theta surrogates.
 #' @param eps Covergence tolerance for the EM algorithm. The EM algorithm is
 #' said to converge is the maximum absolute difference between parameter
@@ -146,6 +146,12 @@
 
 
 fmp_1 <- function(dat, k, tsur, start_vals = NULL, method = "BFGS", ...){
+  
+  missing <- is.na(dat)
+  if(any(missing)){
+    dat <- dat[!missing]
+    message(paste("Warning:", sum(missing), "values removed due to missing data"))
+  }
 
   parmat <- data.frame("item" = rep(1, 2 * k + 2))
 
@@ -159,7 +165,7 @@ fmp_1 <- function(dat, k, tsur, start_vals = NULL, method = "BFGS", ...){
 
 
   if (is.null(start_vals)){
-    parmat$value[grep("xi", parmat$name)] <- qnorm(mean(dat))
+    parmat$value[grep("xi", parmat$name)] <- qnorm(mean(dat, na.rm = TRUE))
     parmat$value[grep("omega", parmat$name)] <- log(1)
     parmat$value[grepl("alpha", parmat$name) & parmat$est] <- .1
     parmat$value[grepl("tau", parmat$name) & parmat$est] <- log(.1)
@@ -212,6 +218,12 @@ fmp_1 <- function(dat, k, tsur, start_vals = NULL, method = "BFGS", ...){
 fmp <- function(dat, k, start_vals = NULL,
                 em = TRUE, eps = 1e-04, n_quad = 49,
                 method = "BFGS", max_em = 500, ...){
+  
+  missing <- apply(dat, 1, function(d) all(is.na(d)))
+  if(any(missing)){
+    dat <- subset(dat, !missing)
+    message(paste("Warning:", sum(missing), "rows removed due to missing data"))
+  }
 
   n_items <- ncol(dat)
   n_subj <- nrow(dat)
@@ -246,7 +258,7 @@ fmp <- function(dat, k, start_vals = NULL,
   # add start values
   if (!is.null(start_vals)) parmat$value[parmat$est] <- start_vals
   if (is.null(start_vals)){
-    parmat$value[grep("xi", parmat$name)] <- qnorm(colMeans(dat))
+    parmat$value[grep("xi", parmat$name)] <- qnorm(colMeans(dat, na.rm = TRUE))
     parmat$value[grep("omega", parmat$name)] <- log(1)
     parmat$value[grepl("alpha", parmat$name) & parmat$est] <- .1
     parmat$value[grepl("tau", parmat$name) & parmat$est] <- log(.1)
@@ -308,8 +320,8 @@ fmp <- function(dat, k, start_vals = NULL,
   if (em){
 
     em_out <- em_alg(dat = dat,
-                   eps = eps, n_quad = n_quad,
-                   method = method, parmat = parmat, max_em = max_em, ...)
+                     eps = eps, n_quad = n_quad,
+                     method = method, parmat = parmat, max_em = max_em, ...)
 
     mod <- em_out$mod
     mod$iter <- em_out$iter

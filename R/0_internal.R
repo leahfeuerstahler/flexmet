@@ -230,7 +230,7 @@ logl <- function(parvec, dat, thetas, parmat){
   probs[probs == 1] <- 1 - 1e-16
   probs[probs == 0] <- 1e-16
 
-  -sum(dat * log(probs) + (1 - dat) * log(1 - probs))
+  -sum(dat * log(probs) + (1 - dat) * log(1 - probs), na.rm = TRUE)
 }
 
 gr_logl <- function(parvec, dat, thetas, parmat){
@@ -286,7 +286,7 @@ gr_logl <- function(parvec, dat, thetas, parmat){
                             parveci = pars[it, ], maxk = maxk)
 
     for (l in 1:ncol(pars)){
-      out[it, l] <- -sum( (dat[, it] - probs[, it]) * partial_m_mat[l, ])
+      out[it, l] <- -sum( (dat[, it] - probs[, it]) * partial_m_mat[l, ], na.rm = TRUE)
     }
   }
 
@@ -366,7 +366,7 @@ hess_logl <- function(parvec, dat, thetas, parmat){
                                         partial_m_mat[l, ] *
                                         partial_m_mat[t, ] -
                                         (dat[, it] - probs[, it]) *
-                                        partial2_m_mat[idx[l, t], ])
+                                        partial2_m_mat[idx[l, t], ], na.rm = TRUE)
           OUT[ ( (it - 1) * (2 * maxk + 2) + 1):(it * (2 * maxk + 2)),
               ( (it - 1) * (2 * maxk + 2) + 1):(it * (2 * maxk + 2))] <- out
         }
@@ -495,7 +495,7 @@ e_step <- function(dat, parvec, n_quad, quad_nodes, quad_wts,
 # lxr is n_subj x n_quad
   lxr <- t(apply(dat, 1, function(x) # dat is n_subj x n_items
     apply(probs, 1, function(y) # probs is n_quad x n_items
-      prod(y ^ x * (1 - y) ^ (1 - x)))))
+      prod(y ^ x * (1 - y) ^ (1 - x), na.rm = TRUE))))
 
   # vector of denominators of length n_subj
   denoms <- apply(lxr, 1, function(x) t(x) %*% quad_wts)
@@ -503,7 +503,7 @@ e_step <- function(dat, parvec, n_quad, quad_nodes, quad_wts,
   # expected item score:
   r_bar <- sapply(1:n_items, function(j) # n_quad x n_items
     sapply(1:n_quad, function(r)
-      sum(dat[, j] * lxr[, r] * quad_wts[r] / denoms)))
+      sum(dat[, j] * lxr[, r] * quad_wts[r] / denoms, na.rm = TRUE)))
 
   # expected number of persons at each quadpt
   n_bar <- sapply(1:n_quad, function(r) sum(lxr[, r] * quad_wts[r] / denoms))
