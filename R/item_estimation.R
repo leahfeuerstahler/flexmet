@@ -132,6 +132,10 @@
 #' Feuerstahler, L. M. (2016). \emph{Exploring alternate latent trait metrics
 #' with the filtered monotonic polynomial IRT model} (Unpublished dissertation).
 #' University of Minnesota, Minneapolis, MN. \url{http://hdl.handle.net/11299/182267}
+#' 
+#' Feuerstahler, L. M. (2019). Metric Transformations and the Filtered Monotonic 
+#' Polynomial Item Response Model. \emph{Psychometrika}, \emph{84}, 105--123. 
+#' \doi{10.1007/s11336-018-9642-9}
 #'
 #' Liang, L. (2007). \emph{A semi-parametric approach to estimating item
 #' response functions} (Unpublished dissertation). The Ohio

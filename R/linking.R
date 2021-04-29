@@ -29,7 +29,7 @@
 #' original and transformed individual item response functions is minimized.
 #' In the Stocking-Lord approach, the sum of squared differences between the
 #' original and transformed test response functions is minimized. See
-#' Feuerstahler (2016) for details on linking with the FMP model.
+#' Feuerstahler (2016, 2019) for details on linking with the FMP model.
 #'
 #' @return
 #' \item{par}{(Greek-letter) parameters estimated by optim.}
@@ -81,6 +81,10 @@
 #' Feuerstahler, L. M. (2016). \emph{Exploring alternate latent trait metrics
 #' with the filtered monotonic polynomial IRT model} (Unpublished dissertation).
 #' University of Minnesota, Minneapolis, MN. \url{http://hdl.handle.net/11299/182267}
+#' 
+#' Feuerstahler, L. M. (2019). Metric Transformations and the Filtered Monotonic 
+#' Polynomial Item Response Model. \emph{Psychometrika}, \emph{84}, 105--123. 
+#' \doi{10.1007/s11336-018-9642-9}
 #'
 #' Haebara, T. (1980). Equating logistic ability scales by a weighted least
 #' squares method. \emph{Japanese Psychological Research}, \emph{22}, 144--149.
