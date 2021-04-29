@@ -157,6 +157,7 @@ fmp_1 <- function(dat, k, tsur, start_vals = NULL, method = "BFGS", ...){
   missing <- is.na(dat)
   if(any(missing)){
     dat <- dat[!missing]
+    tsur <- tsur[!missing]
     message(paste(sum(missing), "values removed due to missing data"))
   }
 
@@ -182,7 +183,7 @@ fmp_1 <- function(dat, k, tsur, start_vals = NULL, method = "BFGS", ...){
   ## estimate the model
   mod <- optim(par = parmat$value,
                fn = logl, gr = gr_logl,
-               method = "BFGS",
+               method = method,
                dat = dat, theta = tsur,
                parmat = parmat,
                control = ...)
