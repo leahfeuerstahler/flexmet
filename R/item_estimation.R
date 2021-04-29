@@ -9,7 +9,8 @@
 #' @aliases fmp_1
 #'
 #' @param dat Vector of 0/1 item responses for N (# subjects) examinees.
-#' @param k Vector of item complexities for each item, see details.
+#' @param k Vector of item complexities for each item, see details. If 
+#' k < ncol(dat), k's will be recycled.
 #' @param tsur Vector of N (# subjects) surrogate theta values.
 #' @param start_vals Start values, For fmp_1, a vector of length 2k+2 in the
 #' following order:
@@ -31,10 +32,11 @@
 #' estimates for successive iterations is less than eps. Ignored if em = FALSE.
 #' @param n_quad Number of quadrature points for EM integration. Ignored if
 #' em = FALSE
-#' @param max_em Maximum number of EM iterations.
+#' @param max_em Maximum number of EM iterations (for em = TRUE only).
 #'
 #' @param method Optimization method passed to optim.
-#' @param \ldots Additional arguments passed to optim.
+#' @param \ldots Additional arguments passed to optim (if em != "mirt") or mirt
+#' (if em == "mirt").
 #'
 #' @return
 #' \item{bmat}{Matrix of estimated b-matrix parameters, each row corresponds
@@ -43,7 +45,8 @@
 #' Greek-letter parameterization, starting value, and parameter estimate.}
 #' \item{k}{Vector of item complexities chosen for each item.}
 #' \item{log_lik}{Model log likelihood.}
-#' \item{mod}{Optimization information, including output from optim.}
+#' \item{mod}{If em == "mirt", the mirt object. Otherwise, optimization 
+#' information, including output from optim.}
 #' \item{AIC}{Model AIC.}
 #' \item{BIC}{Model BIC.}
 #'
@@ -154,7 +157,7 @@ fmp_1 <- function(dat, k, tsur, start_vals = NULL, method = "BFGS", ...){
   missing <- is.na(dat)
   if(any(missing)){
     dat <- dat[!missing]
-    message(paste("Warning:", sum(missing), "values removed due to missing data"))
+    message(paste(sum(missing), "values removed due to missing data"))
   }
 
   parmat <- data.frame("item" = rep(1, 2 * k + 2))
@@ -226,139 +229,192 @@ fmp <- function(dat, k, start_vals = NULL,
   missing <- apply(dat, 1, function(d) all(is.na(d)))
   if(any(missing)){
     dat <- subset(dat, !missing)
-    message(paste("Warning:", sum(missing), "rows removed due to missing data"))
+    message(paste(sum(missing), "rows removed due to missing data"))
   }
-
+  
   n_items <- ncol(dat)
   n_subj <- nrow(dat)
-
+  
   maxk <- max(k) # highest order item
-
+  
+  if(length(k) != n_items) k <- rep_len(k, n_items)
+  
   ### create a matrix of parameter information
-
+  
   ## index the estimated parameters
   parmat <- data.frame("item" = c(rep(1:n_items, each = 2 * maxk + 2)))
-
+  
   ## name the estimated parameters
-
+  
   # item parameters (theta metric)
   if (maxk == 0) parnames <- c("xi", "omega") else
     parnames <- c("xi", "omega",
                   sapply(1:maxk, function(x)
                     paste(c("alpha", "tau"), x, sep = "")))
-
+  
   parmat$name <- rep(parnames, n_items)
-
+  
   # indicate whether parameters are estimated
   estmat <- sapply(k, function(x) c(rep(TRUE, 2 + 2 * x),
                                     rep(FALSE, 2 * (maxk - x))))
   parmat$est <- as.logical(estmat)
-
+  
   # alpha/tau should equal zero/-Inf if not estimated
   # don't need to set alpha = -Inf since all alphas are estimated
   parmat$value <- 0
   parmat$value[grep("tau", parmat$name)] <- -Inf
-
+  
   # add start values
   if (!is.null(start_vals)) parmat$value[parmat$est] <- start_vals
-  if (is.null(start_vals)){
+  if (is.null(start_vals) & em != "mirt"){
     parmat$value[grep("xi", parmat$name)] <- qnorm(colMeans(dat, na.rm = TRUE))
     parmat$value[grep("omega", parmat$name)] <- log(1)
     parmat$value[grepl("alpha", parmat$name) & parmat$est] <- .1
     parmat$value[grepl("tau", parmat$name) & parmat$est] <- log(.1)
   }
-
-  if (!em){
-
-    tsur <- get_surrogates(dat)
-
-    mods <- lapply(1:n_items, function(it){
-      parmati <- parmat[parmat$item == it, ]
-
-      optim(par = parmati$value[parmati$est],
-            fn = logl, gr = gr_logl,
-            method = method,
-            dat = dat[, it], thetas = tsur,
-            parmat = parmati, ...)
+  
+  if(em == "mirt"){
+    itemtype <- ifelse(k == 0, "2PL", "monopoly")
+    
+    parvalues <- mirt::mirt(dat = as.data.frame(dat), model = 1, itemtype = itemtype,
+                            monopoly.k = k, pars = "values", ...)
+    
+    itemnames <- unique(parvalues$item)
+    
+    # if not given start values, record the ones used by mirt
+    if(is.null(start_vals)){
+      for(i in 1:n_items){
+        subparvalues <- parvalues[parvalues$item == itemnames[i], ]
+        vals <- parmat$value[parmat$item == i]
+        if(k[i] == 0){
+          vals[1] <- subparvalues$value[2] # xi
+          vals[2] <- log(subparvalues$value[1]) #omega
+          parmat$value[parmat$item == i] <- vals
+        } else { # if monopoly
+          vals[1] <- subparvalues$value[2] # xi
+          vals[2] <- subparvalues$value[1] #omega
+          vals[3:nrow(subparvalues)] <- subparvalues$value[-c(1, 2)]
+          parmat$value[parmat$item == i] <- vals
+        }
+      }
+    } else{ # if given start values, add to parvalues
+      for(i in 1:n_items){
+        vals <- parmat$value[parmat$est & parmat$item == i]
+        if(k[i] == 0){
+          parvalues$value[parvalues$item == itemnames[i]] <- 
+            c(exp(vals[2]), vals[1], 0, 1) # a1, d, g = 0, u = 1 
+        } else { # if monopoly
+          parvalues$value[parvalues$item == itemnames[i]] <- vals[c(2, 1, 3:length(vals))] 
+        }
+      }
+    }
+    
+    mod <- mirt::mirt(dat = as.data.frame(dat), model = 1, itemtype = itemtype,
+                      monopoly.k = k, pars = parvalues, TOL = eps, 
+                      quadpts = n_quad, ...)
+    
+    ## update bmat, parmat
+    mirtests <- mirt::extract.mirt(mod, "parvec")
+    mirtests <- tapply(mirtests, parmat$item[parmat$est], function(x){
+      x[c(1, 2)] <- x[c(2, 1)]
+      if(length(x) == 2) x[2] <- log(x[2]) # if k = 0
+      x
     })
-
-    mod <- list()
-    mod$values <- sapply(mods, function(x) x$value)
-    mod$value <- sum(sapply(mods, function(x) x$value))
-    mod$convergence <- sapply(mods, function(x) x$convergence)
-    mod$counts <- t(sapply(mods, function(x) x$counts))
-
-    mod$AICs <- 2 * mod$values + 2 * tapply(parmat$est, parmat$item, sum)
-    mod$BICs <- 2 * mod$values +
-                tapply(parmat$est, parmat$item, sum) * log(n_subj)
-
-    ## save the Greek parameters
+    
     parmat$estimate <- parmat$value
-    parmat$estimate[parmat$est] <- unlist(lapply(mods, function(x) x$par))
+    parmat$estimate[parmat$est] <- unlist(mirtests)
+    
+    log_lik <- mirt::extract.mirt(mod, "logLik")
+    AIC <- mirt::extract.mirt(mod, "AIC")
+    BIC <- mirt::extract.mirt(mod, "BIC")
 
-    greek_mat <- matrix(parmat$estimate,
-                       nrow = n_items, ncol = 2 * maxk + 2,
-                       byrow = TRUE)
+  } else{
 
-    if (maxk == 0){
-      bmat <- greek_mat
-      bmat[, 2] <- exp(bmat[, 2])
-    } else{
-      bmat <- t(apply(greek_mat, 1, function(x){
-        xi <- x[1]
-        omega <- x[2]
-        alpha <- x[c(1 + 2 * (1:maxk))]
-        tau <- x[c(2 + 2 * (1:maxk))]
-        greek2b(xi, omega, alpha, tau)
-      }))
-    }
-
-    ## find the standard errors
-    info <- try(solve(hess_logl(parvec = parmat$estimate,
-                                dat = dat, thetas = tsur, parmat = parmat)))
-
-    parmat$error <- suppressWarnings(try(sqrt(diag(info))))
-
+    if (!em){
+  
+      tsur <- get_surrogates(dat)
+  
+      mods <- lapply(1:n_items, function(it){
+        parmati <- parmat[parmat$item == it, ]
+  
+        optim(par = parmati$value[parmati$est],
+              fn = logl, gr = gr_logl,
+              method = method,
+              dat = dat[, it], thetas = tsur,
+              parmat = parmati, ...)
+      })
+  
+      mod <- list()
+      mod$values <- sapply(mods, function(x) x$value)
+      mod$value <- sum(sapply(mods, function(x) x$value))
+      mod$convergence <- sapply(mods, function(x) x$convergence)
+      mod$counts <- t(sapply(mods, function(x) x$counts))
+  
+      mod$AICs <- 2 * mod$values + 2 * tapply(parmat$est, parmat$item, sum)
+      mod$BICs <- 2 * mod$values +
+                  tapply(parmat$est, parmat$item, sum) * log(n_subj)
+  
+      ## save the Greek parameters
+      parmat$estimate <- parmat$value
+      parmat$estimate[parmat$est] <- unlist(lapply(mods, function(x) x$par))
+  
+      ## find the standard errors
+      info <- try(solve(hess_logl(parvec = parmat$estimate,
+                                  dat = dat, thetas = tsur, parmat = parmat)))
+  
+      parmat$error <- suppressWarnings(try(sqrt(diag(info))))
+      
+      log_lik <- mod$value
+      AIC <- 2 * mod$value + 2 * sum(parmat$est)
+      BIC <- 2 * mod$value + sum(parmat$est) * log(n_subj)
+  
   }
-
-  if (em){
-
-    em_out <- em_alg(dat = dat,
-                     eps = eps, n_quad = n_quad,
-                     method = method, parmat = parmat, max_em = max_em, ...)
-
-    mod <- em_out$mod
-    mod$iter <- em_out$iter
-
-    ## save the Greek parameters
-    parmat$estimate <- 0
-    parmat$estimate[parmat$est] <- mod$par
-
-    greek_mat <- matrix(parmat$estimate,
-                       nrow = n_items, ncol = 2 * maxk + 2,
-                       byrow = TRUE)
-
-    if (maxk == 0){
-      bmat <- greek_mat
-      bmat[, 2] <- exp(bmat[, 2])
-    } else{
-      bmat <- t(apply(greek_mat, 1, function(x){
-        xi <- x[1]
-        omega <- x[2]
-        alpha <- x[c(1 + 2 * (1:maxk))]
-        tau <- x[c(2 + 2 * (1:maxk))]
-        greek2b(xi, omega, alpha, tau)
-      }))
+  
+    if (em){
+  
+      em_out <- em_alg(dat = dat,
+                       eps = eps, n_quad = n_quad,
+                       method = method, parmat = parmat, max_em = max_em, ...)
+  
+      mod <- em_out$mod
+      mod$iter <- em_out$iter
+  
+      ## save the Greek parameters
+      parmat$estimate <- parmat$value
+      parmat$estimate[parmat$est] <- mod$par
+      
+      log_lik <- mod$value
+      AIC <- 2 * mod$value + 2 * sum(parmat$est)
+      BIC <- 2 * mod$value + sum(parmat$est) * log(n_subj)
+      
     }
+  
   }
-
-
+  
+  if(maxk > 0){
+    bmat <- t(sapply(1:n_items, function(i){
+      subparmat <- subset(parmat, parmat$item == i)
+      greek2b(xi = subparmat$estimate[grep("xi", subparmat$name)],
+              omega = subparmat$estimate[grep("omega", subparmat$name)], 
+              alpha = subparmat$estimate[grep("alpha", subparmat$name)],
+              tau = subparmat$estimate[grep("tau", subparmat$name)])
+    }))
+  } else{
+    bmat <- t(sapply(1:n_items, function(i){
+      subparmat <- subset(parmat, parmat$item == i)
+      greek2b(xi = subparmat$estimate[grep("xi", subparmat$name)],
+              omega = subparmat$estimate[grep("omega", subparmat$name)], 
+              alpha = NULL,
+              tau = NULL)
+    }))
+  }
+  
+  names(bmat) <- paste0("b", 1:nrow(bmat))
+  
   out <- list(bmat = bmat, parmat = parmat,
-              k = k, log_lik = mod$value, mod = mod,
-              AIC = 2 * mod$value + 2 * sum(parmat$est),
-              BIC = 2 * mod$value + sum(parmat$est) * log(n_subj))
-
-
+              k = k, log_lik = log_lik, mod = mod,
+              AIC = AIC, BIC = BIC)
+  
   out
 
 }
