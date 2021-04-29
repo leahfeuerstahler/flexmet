@@ -11,7 +11,8 @@ Description: Application of the filtered monotonic polynomial (FMP) item respons
 License: GPL-3
 Suggests: MonoPoly,
     knitr,
-    rmarkdown
+    rmarkdown,
+    mirt
 Encoding: UTF-8
 LazyData: true
 RoxygenNote: 6.0.1
