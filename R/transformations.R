@@ -310,8 +310,8 @@ transform_b <- function(bvec, tvec) {
 
 inv_transform_b <- function(bstarvec, tvec) {
 
-    kstar <- (length(bstarvec - 2)) / 2
-    ktheta <- (length(tvec - 2)) / 2
+    kstar <- (length(bstarvec) - 2) / 2
+    ktheta <- (length(tvec) - 2) / 2
 
     k <- (kstar - ktheta) / (2 * ktheta + 1)
 
