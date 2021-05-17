@@ -27,20 +27,17 @@
 #' @export
 
 
-sim_data <- function(bmat, theta, cvec = NULL, dvec = NULL) {
-
-  if (is.null(cvec))
-    cvec <- rep(0, nrow(bmat))
-
-  if (is.null(dvec))
-    dvec <- rep(1, nrow(bmat))
+sim_data <- function(bmat, theta, maxncat = 2, cvec = NULL, dvec = NULL) {
 
   bmat <- as.matrix(bmat)
   n_subj <- length(theta)
-  probs <- irf_fmp(theta = theta, bmat = bmat,
-                   cvec = cvec, dvec = dvec)
-
-  dat <- apply(probs, 2, function(x) as.numeric(runif(n_subj) < x))
-
+  
+  probs <- irf_fmp(theta = theta, bmat = bmat, maxncat = maxncat, 
+                   returncat = 0:(maxncat - 1), cvec = cvec, dvec = dvec)
+  
+  cumprobs <- apply(probs, c(1, 2), cumsum)
+  
+  dat <- apply(cumprobs, c(2, 3), function(x) sum(runif(1) > x, na.rm = TRUE))
+  
   dat
 }

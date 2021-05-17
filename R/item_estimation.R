@@ -184,7 +184,7 @@ fmp_1 <- function(dat, k, tsur, start_vals = NULL, method = "BFGS", ...){
   mod <- optim(par = parmat$value,
                fn = logl, gr = gr_logl,
                method = method,
-               dat = dat, theta = tsur,
+               dat = dat, thetas = tsur,
                parmat = parmat,
                control = ...)
 
@@ -210,14 +210,12 @@ fmp_1 <- function(dat, k, tsur, start_vals = NULL, method = "BFGS", ...){
     bmat <- greek2b(xi = xi, omega = omega, alpha = alpha, tau = tau)
   }
 
-
   out <- list(bmat = bmat, parmat = parmat,
               k = k, log_lik = mod$value, mod = mod,
               AIC = 2 * mod$value + 2 * sum(parmat$est),
               BIC = 2 * mod$value + sum(parmat$est) * log(length(dat)))
-
+  
   out
-
 }
 
 #' @rdname fmp

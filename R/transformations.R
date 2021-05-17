@@ -20,28 +20,28 @@
 #' @export
 
 inv_poly <- function(x, coefs, lb = -1000, ub = 1000) {
-
-    coefs <- as.numeric(coefs)
-
-    func <- function(y, x, coefs) {
-        fw_poly(y = y, coefs = coefs) - x
-    }
-
-    out <- uniroot(f = func, interval = c(lb, ub), x = x, coefs = coefs)
-
-    y <- out$root
-
-    y
-
+  
+  coefs <- as.numeric(coefs)
+  
+  func <- function(y, x, coefs) {
+    fw_poly(y = y, coefs = coefs) - x
+  }
+  
+  out <- uniroot(f = func, interval = c(lb, ub), x = x, coefs = coefs)
+  
+  y <- out$root
+  
+  y
+  
 }
 
 #' @rdname inv_poly
 #' @export
 
 fw_poly <- function(y, coefs){
-
+  
   y <- y ^ (0:(length(coefs) - 1))
-
+  
   t(y) %*% coefs
 }
 
@@ -80,66 +80,70 @@ fw_poly <- function(y, coefs){
 #'
 #' @export
 
-b2greek <- function(bvec, eps = 1e-08) {
-
-    # retain only non-zero elements in bvec
-    check <- bvec == 0
-    while (!all(check)) check <- check[-c(1:2)]
-    bvec <- bvec[1:(length(bvec) - length(check))]
-
-    # save the number of zeros
-    zeros <- numeric(length(check))
-
-
-    # find k value
-    k <- (length(bvec) - 2) / 2
-
-    # extract xi and omega
-    xi <- bvec[1]
-    omega <- log(bvec[2])
-
-    # k = 0
-    if (k == 0) {
-        out <- c(xi, omega)
+b2greek <- function(bvec, ncat = 2, eps = 1e-08) {
+  
+  # retain only non-zero elements in bvec
+  check <- bvec == 0
+  while (!all(check)) check <- check[-c(1:2)]
+  bvec <- bvec[1:(length(bvec) - length(check))]
+  
+  # save the number of zeros
+  zeros <- numeric(length(check))
+  
+  
+  # find k value
+  k <- (length(bvec) - ncat) / 2
+  
+  # extract xi and omega
+  xi <- bvec[1:(ncat-1)]
+  omega <- log(bvec[ncat])
+  
+  # k = 0
+  if (k == 0) {
+    out <- c(xi, omega)
+  } else{
+    
+    # k = 1
+    if (k == 1) {
+      alpha <- -bvec[ncat + 1] / bvec[ncat]
+      tau <- log(3 * bvec[ncat + 2] / bvec[ncat] - alpha ^ 2)
+      out <- c(xi, omega, alpha, tau)
     } else{
-
-      # k = 1
-      if (k == 1) {
-        alpha <- -bvec[3] / bvec[2]
-        tau <- log(3 * bvec[4] / bvec[2] - alpha ^ 2)
-        out <- c(xi, omega, alpha, tau)
-      } else{
-
-        # k = 2 (use numerical methods to find bvec)
-        if (k > 1) {
-          func <- function(alphatau, xi, omega, bvec) {
-            alphatau <- matrix(alphatau, ncol = 2, byrow = TRUE)
-            alpha <- alphatau[, 1]
-            tau <- alphatau[, 2]
-
-            bcand <- greek2b(xi = xi, omega = omega,
-                             alpha = alpha, tau = tau)
-
-            # sum of squared differences between target and candidate bvecs
-            diffvec <- bcand - bvec
-            t(diffvec) %*% diffvec
-          }
-
-          startvals <- rep(c(.1, -2), k)
-
-          # minimize func
-          out <- optim(startvals, fn = func,
-                       method = "BFGS", xi = xi,
-                       omega = omega, bvec = bvec)
-
-          # check the solution
-          if (out$value < eps)
-            out <- c(xi, omega, out$par) else out <- NA
+      
+      # k >= 2 (use numerical methods to find bvec)
+      if (k > 1) {
+        func <- function(alphatau, xi, omega, bvec) {
+          alphatau <- matrix(alphatau, ncol = 2, byrow = TRUE)
+          alpha <- alphatau[, 1]
+          tau <- alphatau[, 2]
+          
+          bcand <- greek2b(xi = xi, omega = omega,
+                           alpha = alpha, tau = tau)
+          
+          # sum of squared differences between target and candidate bvecs
+          diffvec <- bcand - bvec
+          t(diffvec) %*% diffvec
         }
+        
+        startvals <- rep(c(.1, -2), k)
+        
+        # minimize func
+        out <- optim(startvals, fn = func,
+                     method = "BFGS", xi = xi,
+                     omega = omega, bvec = bvec,
+                     control = list(abstol = eps))
+        value <- out$value
+        conv <- out$convergence
+        
+        out <- c(xi, omega, out$par)
+        # check the solution
+        if (value > eps)
+          warning(paste("The solution did not converge within eps =", eps, ", sum of squared difference between vectors = ", value))
       }
     }
-    # output a vector of the same length as the input vector
-    c(out, zeros)
+  }
+  # output a vector of the same length as the input vector
+  c(out, zeros)
 }
 
 
@@ -197,27 +201,27 @@ b2greek <- function(bvec, eps = 1e-08) {
 #' @export
 
 greek2b <- function(xi, omega, alpha = NULL, tau = NULL) {
-
-    a <- exp(omega)
-
-    # if k > 0, find higher-order polynomial coefficients
-    if (!(is.null(alpha) | is.null(tau))) {
-
-        # use T-matrices to find a coefficients
-        Tlist <- lapply(1:length(tau), find_t,
-                        alpha = alpha, tau = tau)
-
-        for (i in 1:length(Tlist)) {
-            a <- Tlist[[i]] %*% a
-        }
+  
+  a <- exp(omega)
+  
+  # if k > 0, find higher-order polynomial coefficients
+  if (!(is.null(alpha) | is.null(tau))) {
+    
+    # use T-matrices to find a coefficients
+    Tlist <- lapply(1:length(tau), find_t,
+                    alpha = alpha, tau = tau)
+    
+    for (i in 1:length(Tlist)) {
+      a <- Tlist[[i]] %*% a
     }
-
-    a <- as.numeric(a)
-
-    # find b coefficients
-    b <- c(xi, a / 1:length(a))
-
-    b
+  }
+  
+  a <- as.numeric(a)
+  
+  # find b coefficients
+  b <- c(xi, a / 1:length(a))
+  
+  b
 }
 
 
@@ -294,32 +298,42 @@ greek2b <- function(xi, omega, alpha = NULL, tau = NULL) {
 #'
 #' @export
 
-transform_b <- function(bvec, tvec) {
-
-    k <- (length(bvec) - 2) / 2
-
-    w <- find_w(tvec = tvec, k = k)
-    bvec <- as.numeric(bvec)
-    bstarvec <- w %*% bvec
-
-    bstarvec
+transform_b <- function(bvec, tvec, ncat = 2) {
+  
+  k <- (length(bvec) - ncat) / 2
+  
+  w <- find_w(tvec = tvec, k = k)
+  bvec <- as.numeric(bvec)
+  
+  bstarvec <- w %*% bvec[c(1, ncat:length(bvec))]
+  if(ncat > 2){
+    bcat <- sapply(2:(ncat - 1), function(b) 
+      (w %*% bvec[c(b, ncat:length(bvec))])[1])
+    bstarvec <- c(bstarvec[1], bcat, bstarvec[-1])
+  }
+  bstarvec
 }
 
 #' @rdname transform_b
 #' @export
 
-inv_transform_b <- function(bstarvec, tvec) {
-
-    kstar <- (length(bstarvec) - 2) / 2
-    ktheta <- (length(tvec) - 2) / 2
-
-    k <- (kstar - ktheta) / (2 * ktheta + 1)
-
-    stopifnot(k %% 1 == 0)
-
-    w <- find_w(tvec = tvec, k = k)
-
-    bvec <- solve(t(w) %*% w) %*% t(w) %*% bstarvec
-
-    bvec
+inv_transform_b <- function(bstarvec, tvec, ncat = 2) {
+  
+  kstar <- (length(bstarvec) - ncat) / 2
+  ktheta <- (length(tvec) - 2) / 2
+  
+  k <- (kstar - ktheta) / (2 * ktheta + 1)
+  
+  stopifnot(k %% 1 == 0)
+  
+  w <- find_w(tvec = tvec, k = k)
+  
+  bvec <- solve(t(w) %*% w) %*% t(w) %*% bstarvec[c(1, ncat:length(bstarvec))]
+  if(ncat > 2){
+    bstarcat <- sapply(2:(ncat - 1), function(b)
+      (solve(t(w) %*% w) %*% t(w) %*% bstarvec[c(b, ncat:length(bstarvec))])[1]
+    )
+    bvec <- c(bvec[1], bstarcat, bvec[-1])
+  }
+  bvec
 }

@@ -29,7 +29,17 @@
 #' @export
 
 
-irf_fmp <- function(theta, bmat, cvec = NULL, dvec = NULL) {
+irf_fmp <- function(theta, bmat, maxncat = 2, returncat = NA, cvec = NULL, dvec = NULL) {
+
+    if(any(is.na(returncat))){
+        if(maxncat == 2)
+            returncat <- 1 else{
+                returncat <- 0:(maxncat - 1)
+            }
+    }
+
+    if (maxncat > 2 & (!is.null(cvec) | !is.null(dvec)))
+        message("Beware! Parameters with asymptote parameters only available  with maxncat = 2!")
 
     if (!is.matrix(bmat))
         bmat <- as.matrix(bmat)
@@ -49,9 +59,45 @@ irf_fmp <- function(theta, bmat, cvec = NULL, dvec = NULL) {
     dvec <- matrix(dvec, nrow = length(theta), ncol = nrow(bmat),
                    byrow = TRUE)
 
-    theta <- t(sapply(theta, function(x) x ^ (0:(ncol(bmat) - 1))))
+    ntheta <- length(theta)
 
-    out <- cvec + (dvec - cvec) / (1 + exp(-theta %*% t(bmat)))
+    if(maxncat > 2){
+        
+        theta <- t(sapply(theta, function(x) x ^ (1:(ncol(bmat) - maxncat + 1))))
+        if(nrow(theta) != ntheta) theta <- t(theta)
+
+        b0 <- bmat[, 1:(maxncat - 1), drop = FALSE]
+        whichbinary <- which(apply(b0, 1, function(x) sum(!is.na(x))) == 1)
+        bm <- bmat[, maxncat:(ncol(bmat)), drop = FALSE]
+
+        xis <- as.matrix(apply(b0, 1, cumsum))
+
+        out <- array(NA, dim = c(ntheta, nrow(bmat), maxncat))
+        out[, , 1] <- 1
+        for(i in 2:maxncat){
+            out[, , i] <- exp(theta %*% t(bm) * (i - 1) + rep(1, ntheta) %*% t(xis[i - 1, ]))
+        }
+        out[is.infinite(out)] <- 1e+308
+        den <- apply(out, c(1, 2), sum, na.rm = TRUE)
+        for(i in 1:maxncat)
+            out[, , i] <- out[, , i] / den
+
+        ## ifelse statement for categories 0 and 1 for binary items
+        out[, whichbinary, 2] <- cvec[whichbinary] +
+            (dvec[whichbinary] - cvec[whichbinary]) *
+            out[, whichbinary, 2]
+        out[, whichbinary, 1] <- 1 - out[, whichbinary, 2]
+        
+    } else{ # if maxncat = 2
+        theta <- t(sapply(theta, function(x) x ^ (0:(ncol(bmat) - 1))))
+        out <- array(NA, dim = c(ntheta, nrow(bmat), maxncat))
+        out[, , 2] <- cvec + (dvec - cvec) / (1 + exp(-theta %*% t(bmat)))
+        out[, , 1] <- 1 - out[, , 2]
+    }
+    
+    out <- out[, , returncat + 1, drop = FALSE]
+    
+    if(dim(out)[3] == 1) out <- matrix(out, nrow = dim(out)[1])
 
     out
 }

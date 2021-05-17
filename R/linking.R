@@ -100,14 +100,14 @@
 
 
 
-sl_link <- function(bmat1, bmat2,
+sl_link <- function(bmat1, bmat2, maxncat = 2,
                     cvec1 = NULL, cvec2 = NULL,
                     dvec1 = NULL, dvec2 = NULL, k_theta,
                     int = int_mat(), ...) {
 
     # function to find the square root of the sum of squared
     #   differences between FMP IRFs
-    rimse_dif <- function(greek_tvec, bmat1, bmat2,
+    rimse_dif <- function(greek_tvec, bmat1, bmat2, maxncat,
                           cvec1, cvec2, dvec1, dvec2, int) {
 
         # find xi, omega, alpha, and tau from greek_tvec
@@ -125,41 +125,50 @@ sl_link <- function(bmat1, bmat2,
 
         theta1 <- int[, 1]
 
-        bmat2star <- t(apply(bmat2, 1, transform_b, tvec = tvec))
+        bmat2star <- t(apply(bmat2, 1, transform_b, tvec = tvec, ncat = maxncat))
 
-        irf1 <- rowSums(irf_fmp(theta = theta1,
-                                bmat = bmat1,
-                                cvec = cvec1,
-                                dvec = dvec1))
-        irf2 <- rowSums(irf_fmp(theta = theta1,
-                                bmat = bmat2star,
-                                cvec = cvec2,
-                                dvec = dvec2))
+        irf1 <- irf_fmp(theta = theta1,
+                        bmat = bmat1,
+                        maxncat = maxncat,
+                        cvec = cvec1,
+                        dvec = dvec1, 
+                        returncat = 0:(maxncat - 1))
+        irf1 <- apply(irf1, c(1, 2), function(x) 
+            sum(x * 0:(maxncat - 1), na.rm = TRUE))
+        
+        irf2 <- irf_fmp(theta = theta1,
+                        bmat = bmat2star,
+                        maxncat = maxncat,
+                        cvec = cvec2,
+                        dvec = dvec2,
+                        returncat = 0:(maxncat - 1))
+        irf2 <- apply(irf2, c(1, 2), function(x) 
+            sum(x * 0:(maxncat - 1), na.rm = TRUE))
 
         sqrt(sum(int[, 2] * (irf1 - irf2) ^ 2))
     }
 
-    out <- optim(par = rep(0, 2 + 2 * k_theta), fn = rimse_dif,
-                 bmat1 = bmat1, bmat2 = bmat2,
+    out <- optim(par = c(0, 1, rep(0, 2 * k_theta)), fn = rimse_dif,
+                 bmat1 = bmat1, bmat2 = bmat2, maxncat = maxncat,
                  cvec1 = cvec1, cvec2 = cvec2,
                  dvec1 = dvec1, dvec2 = dvec2,
-                 int = int,
-        ...)
+                 int = int, ...)
 
     greekvec <- out$par
     ifelse(k_theta == 0,
 
            # if k_theta = 0
-           tvec <- greek2b(xi = greekvec[1],
-                           omega = greekvec[2]),
+           tvec <- greek2b(xi = greekvec[1:(maxncat - 1)],
+                           omega = greekvec[maxncat]),
 
            # if k_theta > 0
-           tvec <- greek2b(xi = greekvec[1], omega = greekvec[2],
-                           alpha = greekvec[c(1 + 2 * (1:k_theta))],
-                           tau = greekvec[c(2 + 2 * (1:k_theta))]))
+           tvec <- greek2b(xi = greekvec[1:(maxncat - 1)], 
+                           omega = greekvec[maxncat],
+                           alpha = greekvec[c(maxncat - 1 + 2 * (1:k_theta))],
+                           tau = greekvec[c(maxncat + 2 * (1:k_theta))]))
 
     out$tvec <- tvec
-    out$bmat <- t(apply(bmat2, 1, transform_b, tvec = tvec))
+    out$bmat <- t(apply(bmat2, 1, transform_b, tvec = tvec, ncat = maxncat))
     out
 }
 
@@ -167,14 +176,14 @@ sl_link <- function(bmat1, bmat2,
 #' @export
 
 
-hb_link <- function(bmat1, bmat2,
+hb_link <- function(bmat1, bmat2, maxncat = 2,
                     cvec1 = NULL, cvec2 = NULL,
                     dvec1 = NULL, dvec2 = NULL, k_theta,
                     int = int_mat(), ...) {
 
     # function to find the root integrated mean squared difference
     #   between two FMP TRFs
-    rimse_dif <- function(greek_tvec, bmat1, bmat2,
+    rimse_dif <- function(greek_tvec, bmat1, bmat2, maxncat,
                           cvec1, cvec2, dvec1, dvec2, int) {
         xi <- greek_tvec[1]
         omega <- greek_tvec[2]
@@ -190,18 +199,31 @@ hb_link <- function(bmat1, bmat2,
 
         theta1 <- int[, 1]
 
-        bmat2star <- t(apply(bmat2, 1, transform_b, tvec = tvec))
+        bmat2star <- t(apply(bmat2, 1, transform_b, tvec = tvec, ncat = maxncat))
 
-        irf1 <- irf_fmp(theta = theta1, bmat = bmat1,
-                        cvec = cvec1, dvec = dvec1)
-        irf2 <- irf_fmp(theta = theta1, bmat = bmat2star,
-                        cvec = cvec2, dvec = dvec1)
+        irf1 <- irf_fmp(theta = theta1,
+                        bmat = bmat1,
+                        maxncat = maxncat,
+                        cvec = cvec1,
+                        dvec = dvec1, 
+                        returncat = 0:(maxncat - 1))
+        irf1 <- apply(irf1, c(1, 2), function(x) 
+            sum(x * 0:(maxncat - 1), na.rm = TRUE))
+        
+        irf2 <- irf_fmp(theta = theta1,
+                        bmat = bmat2star,
+                        maxncat = maxncat,
+                        cvec = cvec2,
+                        dvec = dvec2,
+                        returncat = 0:(maxncat - 1))
+        irf2 <- apply(irf2, c(1, 2), function(x) 
+            sum(x * 0:(maxncat - 1), na.rm = TRUE))
 
         sqrt(sum(int[, 2] * rowSums( (irf1 - irf2) ^ 2)))
     }
 
-    out <- optim(par = rep(0, 2 + 2 * k_theta), fn = rimse_dif,
-                 bmat1 = bmat1, bmat2 = bmat2,
+    out <- optim(par = c(0, 1, rep(0, 2 * k_theta)), fn = rimse_dif,
+                 bmat1 = bmat1, bmat2 = bmat2, maxncat = maxncat,
                  cvec1 = cvec1, cvec2 = cvec2,
                  dvec1 = dvec1, dvec2 = dvec2,
                  int = int, ...)
@@ -209,17 +231,18 @@ hb_link <- function(bmat1, bmat2,
     greekvec <- out$par
     ifelse(k_theta == 0,
 
-           # if k = 0
-           tvec <- greek2b(xi = greekvec[1],
-                           omega = greekvec[2]),
-
-           # if k > 0
-           tvec <- greek2b(xi = greekvec[1], omega = greekvec[2],
-                           alpha = greekvec[c(1 + 2 * (1:k_theta))],
-                           tau = greekvec[c(2 + 2 * (1:k_theta))]))
+           # if k_theta = 0
+           tvec <- greek2b(xi = greekvec[1:(maxncat - 1)],
+                           omega = greekvec[maxncat]),
+           
+           # if k_theta > 0
+           tvec <- greek2b(xi = greekvec[1:(maxncat - 1)], 
+                           omega = greekvec[maxncat],
+                           alpha = greekvec[c(maxncat - 1 + 2 * (1:k_theta))],
+                           tau = greekvec[c(maxncat + 2 * (1:k_theta))]))
 
     out$tvec <- tvec
-    out$bmat <- t(apply(bmat2, 1, transform_b, tvec = tvec))
+    out$bmat <- t(apply(bmat2, 1, transform_b, tvec = tvec, ncat = maxncat))
 
     out
 }

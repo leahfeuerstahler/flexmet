@@ -40,25 +40,28 @@
 #'
 #' @export
 
-th_est_ml <- function(dat, bmat,
+th_est_ml <- function(dat, bmat, maxncat = 2,
                       cvec = NULL, dvec = NULL,
                       lb = -4, ub = 4) {
 
     # log likelihood function
-    loglik <- function(theta, resp, bmat, cvec, dvec) {
-        P <- irf_fmp(theta = theta, bmat = bmat,
-                     cvec = cvec, dvec = dvec)
-        sum(resp * log(P) + (1 - resp) * (log(1 - P)))
+    loglik <- function(theta, resp, maxncat, bmat, cvec, dvec) {
+        P <- irf_fmp(theta = theta, bmat = bmat, 
+                     maxncat = maxncat,
+                     cvec = cvec, dvec = dvec,
+                     returncat = 0:(maxncat-1))
+        logP <- sapply(1:dim(P)[2], function(i) log(P[, i, resp[i] + 1]))
+        sum(logP)
     }
 
     # find mles
     mles <- apply(dat, 1, function(resp)
       optimize(f = loglik, interval = c(lb, ub), resp = resp,
-               bmat = bmat, cvec = cvec,
+               bmat = bmat, maxncat = maxncat, cvec = cvec,
                dvec = dvec, maximum = TRUE)$maximum)
 
     # find standard errors
-    infos <- iif_fmp(theta = mles, bmat = bmat,
+    infos <- iif_fmp(theta = mles, bmat = bmat, maxncat = maxncat,
                      cvec = cvec, dvec = dvec)
 
     sems <- 1 / sqrt(rowSums(infos))
@@ -76,19 +79,20 @@ th_est_ml <- function(dat, bmat,
 #' @rdname th_est_ml
 #' @export
 
-th_est_eap <- function(dat, bmat,
+th_est_eap <- function(dat, bmat, maxncat = 2,
                        cvec = NULL, dvec = NULL,
                        int = int_mat(npts = 33)) {
 
-  p <- irf_fmp(theta = int[, 1], bmat = bmat,
-               cvec = cvec, dvec = dvec)
+  P <- irf_fmp(theta = int[, 1], bmat = bmat,
+               maxncat = maxncat, cvec = cvec, 
+               dvec = dvec, returncat = 0:(maxncat-1))
 
   # compute eaps and posterior standard deviations
-  eaps <- apply(dat, 1, function(dat) {
+  eaps <- apply(dat, 1, function(resp) {
 
-    dat <- matrix(dat, ncol = length(dat), nrow = nrow(p), byrow = TRUE)
-
-    lik <- p ^ dat * (1 - p) ^ (1 - dat)
+    # dat <- matrix(dat, ncol = length(dat), nrow = nrow(p), byrow = TRUE)
+    
+    lik <- sapply(1:dim(P)[2], function(i) P[, i, resp[i] + 1])
     lik <- apply(lik, 1, prod)
 
     eap <- sum(int[, 1] * lik * int[, 2]) / sum(lik * int[, 2])

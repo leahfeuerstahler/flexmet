@@ -40,33 +40,42 @@
 #' @export
 
 sim_bmat <- function(n_items, k,
+                     ncat = 2,
                      xi_dist = c(-1, 1),
                      omega_dist = c(-1, 1),
                      alpha_dist = c(-1, .5),
                      tau_dist = c(-7, -1)){
 
   maxk <- max(k)
+  
+  maxncat <- max(ncat)
 
-  bmat <- matrix(0, nrow = n_items, ncol = 2 * maxk + 2)
+  bmat <- matrix(0, nrow = n_items, ncol = 2 * maxk + maxncat)
 
   if (length(k) == 1) k <- rep(k, n_items)
-
+  
   if (length(k) != n_items) stop("k must either have 1 or n_items elements")
+  
+  if (length(ncat) == 1) ncat <- rep(ncat, n_items)
+  
+  if (length(ncat) != n_items) stop("ncat must either have 1 or n_items elements")
 
   # randomly draw xi and omega parameters
-  xi <- runif(n_items, xi_dist[1], xi_dist[2])
+  xi <- matrix(runif(n_items * (maxncat - 1), xi_dist[1], xi_dist[2]), ncol = maxncat - 1)
   omega <- runif(n_items, omega_dist[1], omega_dist[2])
 
   # randomly draw alpha and tau parameters
-  alpha <- tau <- matrix(0, nrow = n_items, ncol = maxk)
+  alpha <- matrix(0, nrow = n_items, ncol = maxk)
+  tau <- matrix(-Inf, nrow = n_items, ncol = maxk)
 
   for (i in 1:n_items){
+    if (ncat[i] < maxncat) xi[i, ncat[i]:ncol(xi)] <- NA
     if (k[i] != 0){
       alpha[i, 1:k[i]] <- runif(k[i], alpha_dist[1], alpha_dist[2])
       tau[i, 1:k[i]] <- runif(k[i], tau_dist[1], tau_dist[2])
-      bmat[i, ] <- greek2b(xi = xi[i], omega = omega[i],
+      bmat[i, ] <- greek2b(xi = xi[i, ], omega = omega[i],
                            alpha = alpha[i, ], tau = tau[i, ])
-    } else bmat[i, 1:2] <- greek2b(xi = xi[i], omega = omega[i])
+    } else bmat[i, 1:maxncat] <- greek2b(xi = xi[i, ], omega = omega[i])
   }
 
   # bind together greekmat
@@ -74,11 +83,13 @@ sim_bmat <- function(n_items, k,
   greekmat <- cbind(xi, omega, greekmat)
 
   # make nice column names
-  if (maxk == 0) colnames(greekmat) <- c("xi", "omega") else
-    colnames(greekmat) <- c("xi", "omega", paste0(rep(c("alpha", "tau"),
-                                                       maxk),
-                                                 rep(1:maxk, each = 2)))
-  colnames(bmat) <- paste0("b", 0:(ncol(bmat) - 1))
+  if (maxk == 0) colnames(greekmat) <- c(paste0("xi", 1:(maxncat - 1)), "omega") else
+    colnames(greekmat) <- c(paste0("xi", 1:(maxncat - 1)), "omega", 
+                            paste0(rep(c("alpha", "tau"), maxk),
+                                   rep(1:maxk, each = 2)))
+  if(maxncat > 2) 
+    colnames(bmat) <- c(paste0("b0_", 1:(maxncat - 1)), paste0("b", 1:(2*maxk + 1))) else
+      colnames(bmat) <- paste0("b", 0:(ncol(bmat) - 1))
 
   # output both bmat and greekmat
   list(bmat = bmat, greekmat = greekmat)
