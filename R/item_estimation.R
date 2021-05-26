@@ -160,20 +160,23 @@ fmp_1 <- function(dat, k, tsur, start_vals = NULL, method = "BFGS", ...){
     tsur <- tsur[!missing]
     message(paste(sum(missing), "values removed due to missing data"))
   }
+  
+  ncat <- max(dat) + 1
 
-  parmat <- data.frame("item" = rep(1, 2 * k + 2))
+  parmat <- data.frame("item" = rep(1, 2 * k + ncat))
 
-  if (k == 0) parnames <- c("xi", "omega") else
-    parnames <- c("xi", "omega",
+  if (k == 0) parnames <- c(paste0("xi", 1:(ncat-1)), "omega") else
+    parnames <- c(paste0("xi", 1:(ncat-1)), "omega",
                   sapply(1:k, function(x)
                     paste(c("alpha", "tau"), x, sep = "")))
 
   parmat$name <- parnames
   parmat$est <- TRUE
-
+  parmat$value <- 0
 
   if (is.null(start_vals)){
-    parmat$value[grep("xi", parmat$name)] <- qnorm(mean(dat, na.rm = TRUE))
+    parmat$value[grep("xi", parmat$name)] <- 
+      qnorm(cumsum(table(dat))[1:(ncat - 1)] / length(dat))
     parmat$value[grep("omega", parmat$name)] <- log(1)
     parmat$value[grepl("alpha", parmat$name) & parmat$est] <- .1
     parmat$value[grepl("tau", parmat$name) & parmat$est] <- log(.1)
@@ -185,6 +188,7 @@ fmp_1 <- function(dat, k, tsur, start_vals = NULL, method = "BFGS", ...){
                fn = logl, gr = gr_logl,
                method = method,
                dat = dat, thetas = tsur,
+               maxncat = ncat, 
                parmat = parmat,
                control = ...)
 
@@ -192,7 +196,7 @@ fmp_1 <- function(dat, k, tsur, start_vals = NULL, method = "BFGS", ...){
   parmat$estimate <- mod$par
 
   ## find the standard errors
-  info <- try(solve(hess_logl(parvec = parmat$estimate,
+  info <- try(solve(hess_logl(parvec = parmat$estimate, maxncat = ncat, 
                                    dat = dat, thetas = tsur, parmat = parmat)))
 
   parmat$error <- suppressWarnings(try(sqrt(diag(info))))
@@ -211,7 +215,7 @@ fmp_1 <- function(dat, k, tsur, start_vals = NULL, method = "BFGS", ...){
   }
 
   out <- list(bmat = bmat, parmat = parmat,
-              k = k, log_lik = mod$value, mod = mod,
+              k = k, ncat = ncat, log_lik = mod$value, mod = mod,
               AIC = 2 * mod$value + 2 * sum(parmat$est),
               BIC = 2 * mod$value + sum(parmat$est) * log(length(dat)))
   
@@ -231,6 +235,9 @@ fmp <- function(dat, k, start_vals = NULL,
     message(paste(sum(missing), "rows removed due to missing data"))
   }
   
+  ncat <- apply(dat, 2, max) + 1
+  maxncat <- max(ncat)
+  
   n_items <- ncol(dat)
   n_subj <- nrow(dat)
   
@@ -241,21 +248,23 @@ fmp <- function(dat, k, start_vals = NULL,
   ### create a matrix of parameter information
   
   ## index the estimated parameters
-  parmat <- data.frame("item" = c(rep(1:n_items, each = 2 * maxk + 2)))
+  parmat <- data.frame("item" = c(rep(1:n_items, each = 2 * maxk + maxncat)))
   
   ## name the estimated parameters
   
   # item parameters (theta metric)
-  if (maxk == 0) parnames <- c("xi", "omega") else
-    parnames <- c("xi", "omega",
+  if (maxk == 0) parnames <- c(paste0("xi", 1:(maxncat-1)), "omega") else
+    parnames <- c(paste0("xi", 1:(maxncat-1)), "omega",
                   sapply(1:maxk, function(x)
                     paste(c("alpha", "tau"), x, sep = "")))
   
   parmat$name <- rep(parnames, n_items)
   
   # indicate whether parameters are estimated
-  estmat <- sapply(k, function(x) c(rep(TRUE, 2 + 2 * x),
-                                    rep(FALSE, 2 * (maxk - x))))
+  estmat <- sapply(1:n_items, function(i) c(rep(TRUE, ncat[i] - 1),
+                                            rep(FALSE, maxncat - ncat[i]),
+                                            rep(TRUE, 1 + 2 * k[i]),
+                                            rep(FALSE, 2 * (maxk - k[i]))))
   parmat$est <- as.logical(estmat)
   
   # alpha/tau should equal zero/-Inf if not estimated
@@ -266,14 +275,17 @@ fmp <- function(dat, k, start_vals = NULL,
   # add start values
   if (!is.null(start_vals)) parmat$value[parmat$est] <- start_vals
   if (is.null(start_vals) & em != "mirt"){
-    parmat$value[grep("xi", parmat$name)] <- qnorm(colMeans(dat, na.rm = TRUE))
+    for(i in 1:n_items){
+      parmat$value[grepl("xi", parmat$name) & parmat$item == i & parmat$est] <- 
+        qnorm(cumsum(table(dat))[1:(ncat[i] - 1)] / length(dat))
+    }
     parmat$value[grep("omega", parmat$name)] <- log(1)
     parmat$value[grepl("alpha", parmat$name) & parmat$est] <- .1
     parmat$value[grepl("tau", parmat$name) & parmat$est] <- log(.1)
   }
   
   if(em == "mirt"){
-    itemtype <- ifelse(k == 0, "2PL", "monopoly")
+    itemtype <- ifelse(maxk == 0, ifelse(maxncat == 2, "2PL", "gpcm"), "monopoly")
     
     parvalues <- mirt::mirt(dat = as.data.frame(dat), model = 1, itemtype = itemtype,
                             monopoly.k = k, pars = "values", ...)
@@ -340,6 +352,7 @@ fmp <- function(dat, k, start_vals = NULL,
               fn = logl, gr = gr_logl,
               method = method,
               dat = dat[, it], thetas = tsur,
+              maxncat = maxncat,
               parmat = parmati, ...)
       })
   
@@ -358,8 +371,9 @@ fmp <- function(dat, k, start_vals = NULL,
       parmat$estimate[parmat$est] <- unlist(lapply(mods, function(x) x$par))
   
       ## find the standard errors
-      info <- try(solve(hess_logl(parvec = parmat$estimate,
-                                  dat = dat, thetas = tsur, parmat = parmat)))
+      info <- try(solve(hess_logl(parvec = parmat$estimate, dat = dat, 
+                                  maxncat = maxncat, thetas = tsur, 
+                                  parmat = parmat)))
   
       parmat$error <- suppressWarnings(try(sqrt(diag(info))))
       
@@ -372,7 +386,7 @@ fmp <- function(dat, k, start_vals = NULL,
     if (em){
   
       em_out <- em_alg(dat = dat,
-                       eps = eps, n_quad = n_quad,
+                       eps = eps, n_quad = n_quad, maxncat = maxncat,
                        method = method, parmat = parmat, max_em = max_em, ...)
   
       mod <- em_out$mod
@@ -408,11 +422,13 @@ fmp <- function(dat, k, start_vals = NULL,
     }))
   }
   
-  names(bmat) <- paste0("b", 1:nrow(bmat))
+  if(maxncat > 2) 
+    colnames(bmat) <- c(paste0("b0_", 1:(maxncat - 1)), paste0("b", 1:(2*maxk + 1))) else
+      colnames(bmat) <- paste0("b", 0:(ncol(bmat) - 1))
   
-  out <- list(bmat = bmat, parmat = parmat,
+  out <- list(bmat = bmat, parmat = parmat, 
               k = k, log_lik = log_lik, mod = mod,
-              AIC = AIC, BIC = BIC)
+              maxncat = maxncat, AIC = AIC, BIC = BIC)
   
   out
 

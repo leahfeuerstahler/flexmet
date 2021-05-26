@@ -1,21 +1,21 @@
-partial_m <- function(parveci, theta, maxk){
+partial_m <- function(parveci, theta, maxk, ncat = 2){
 
   j <- 1:(2 * maxk + 1)
 
   # L&B Eq B10
   nu <- 1 / j * theta ^ j
 
-  omegai <- parveci[2]
+  omegai <- parveci[ncat]
 
   if (maxk == 0){
 
-    out <- c(1, nu * exp(omegai))
+    out <- c(rep(1, ncat - 1), nu * exp(omegai))
 
   } else {
 
     # extract alpha and tau parameters
-    alphai <- parveci[c(1 + 2 * (1:maxk))]
-    taui <- parveci[c(2 + 2 * (1:maxk))]
+    alphai <- parveci[c(ncat - 1 + 2 * (1:maxk))]
+    taui <- parveci[c(ncat + 2 * (1:maxk))]
 
     # find all T matrices
     Tlist <- lapply(1:maxk, find_t, alpha = alphai, tau = taui)
@@ -51,19 +51,19 @@ partial_m <- function(parveci, theta, maxk){
     }
 
     # output vector of first derivatives
-    out <- c(1, m.omega, as.numeric(m.alphatau))
+    out <- c(rep(1, ncat - 1), m.omega, as.numeric(m.alphatau)) 
   }
   out
 }
 
-partial2_m <- function(parveci, theta, maxk){
+partial2_m <- function(parveci, theta, maxk, ncat = 2){
 
   j <- 1:(2 * maxk + 1)
 
   # L&B Eq B10
   nu <- 1 / j * theta ^ j
 
-  omegai <- parveci[2]
+  omegai <- parveci[ncat]
 
   if (maxk == 0){
 
@@ -72,11 +72,11 @@ partial2_m <- function(parveci, theta, maxk){
 
   } else {
 
-    out <- matrix(0, nrow = 2 * maxk + 2, ncol = 2 * maxk + 2)
+    out <- matrix(0, nrow = 2 * maxk + ncat, ncol = 2 * maxk + ncat)
 
     # extract alpha and tau parameters
-    alphai <- parveci[c(1 + 2 * (1:maxk))]
-    taui <- parveci[c(2 + 2 * (1:maxk))]
+    alphai <- parveci[c(ncat - 1 + 2 * (1:maxk))]
+    taui <- parveci[c(ncat + 2 * (1:maxk))]
 
     # find T matrices
     Tlist <- lapply(1:maxk, find_t, alpha = alphai, tau = taui)
@@ -89,7 +89,7 @@ partial2_m <- function(parveci, theta, maxk){
         m.omega <- Tlist[[j]] %*% m.omega
       }
     }
-    out[2, 2] <- t(nu) %*% m.omega
+    out[ncat, ncat] <- t(nu) %*% m.omega
 
     # get more T matrices
     for (j1 in 1:maxk){
@@ -128,10 +128,10 @@ partial2_m <- function(parveci, theta, maxk){
         tmp_tau_tau <- Tlist_tau_tau[[i]] %*% tmp_tau_tau
       }
 
-      out[2, 1 + 2 * j1] <- t(nu) %*% tmp_alpha_omega
-      out[2, 2 + 2 * j1] <- t(nu) %*% tmp_tau_omega
-      out[1 + 2 * j1, 1 + 2 * j1] <- t(nu) %*% tmp_alpha_alpha
-      out[2 + 2 * j1, 2 + 2 * j1] <- t(nu) %*% tmp_tau_tau
+      out[ncat, ncat - 1 + 2 * j1] <- t(nu) %*% tmp_alpha_omega
+      out[ncat, ncat + 2 * j1] <- t(nu) %*% tmp_tau_omega
+      out[ncat - 1 + 2 * j1, ncat - 1 + 2 * j1] <- t(nu) %*% tmp_alpha_alpha
+      out[ncat + 2 * j1, ncat + 2 * j1] <- t(nu) %*% tmp_tau_tau
 
       for (j2 in 1:maxk){
 
@@ -168,20 +168,19 @@ partial2_m <- function(parveci, theta, maxk){
             tmp_tau_tau <- Tlist_tau_tau[[i]] %*% tmp_tau_tau
           }
 
-          out[1 + 2 * j1, 1 + 2 * j2] <- t(nu) %*% tmp_alpha_alpha
-          out[1 + 2 * j1, 2 + 2 * j2] <- t(nu) %*% tmp_alpha_tau1
-          out[2 + 2 * j1, 1 + 2 * j2] <- t(nu) %*% tmp_alpha_tau2
-          out[2 + 2 * j1, 2 + 2 * j2] <- t(nu) %*% tmp_tau_tau
+          out[ncat - 1 + 2 * j1, ncat - 1 + 2 * j2] <- t(nu) %*% tmp_alpha_alpha
+          out[ncat - 1 + 2 * j1, ncat + 2 * j2] <- t(nu) %*% tmp_alpha_tau1
+          out[ncat + 2 * j1, ncat - 1 + 2 * j2] <- t(nu) %*% tmp_alpha_tau2
+          out[ncat + 2 * j1, ncat + 2 * j2] <- t(nu) %*% tmp_tau_tau
         }
       }
     }
 
   }
   t(out)[lower.tri(out, diag = TRUE)]
-  #out
 }
 
-logl <- function(parvec, dat, thetas, parmat){
+logl <- function(parvec, dat, thetas, maxncat = 2, parmat){
 
   dat <- as.matrix(dat)
 
@@ -190,16 +189,16 @@ logl <- function(parvec, dat, thetas, parmat){
   parmat$value[parmat$est] <- parvec
   pars <- matrix(parmat$value, nrow = n_items, byrow = TRUE)
 
-  maxk <- (ncol(pars) - 2) / 2
+  maxk <- (ncol(pars) - maxncat) / 2
 
-  xi <- pars[, 1]
-  omega <- pars[, 2]
+  xi <- pars[, 1:(maxncat - 1), drop = FALSE]
+  omega <- pars[, maxncat]
 
   if (maxk > 0){
-    alpha <- as.matrix(pars[, c(1 + 2 * (1:maxk))]) ## 3, 5, 7, ...
-    tau <- as.matrix(pars[, c(2 + 2 * (1:maxk))]) ## 4, 6, 8, ...
+    alpha <- as.matrix(pars[, c(maxncat - 1 + 2 * (1:maxk))]) ## 3, 5, 7, ...
+    tau <- as.matrix(pars[, c(maxncat + 2 * (1:maxk))]) ## 4, 6, 8, ...
 
-    if (n_items == 1){
+  if (n_items == 1){
       alpha <- matrix(alpha, nrow = 1)
       tau <- matrix(tau, nrow = 1)
     }
@@ -207,49 +206,53 @@ logl <- function(parvec, dat, thetas, parmat){
 
   # convert greek parameters to b parameters
 
-  bmat <- matrix(nrow = n_items, ncol = 2 * maxk + 2)
+  bmat <- matrix(nrow = n_items, ncol = 2 * maxk + maxncat)
 
   if (maxk == 0){
     for (it in 1:n_items){
-      bmat[it, ] <- greek2b(xi = xi[it], omega = omega[it],
+      bmat[it, ] <- greek2b(xi = xi[it, ], omega = omega[it],
                            alpha = NULL, tau = NULL)
     }
   }
 
   if (maxk > 0){
     for (it in 1:n_items){
-      bmat[it, ] <- greek2b(xi = xi[it], omega = omega[it],
+      bmat[it, ] <- greek2b(xi = xi[it, ], omega = omega[it],
                            alpha = alpha[it, ], tau = tau[it, ])
     }
   }
 
   # find probabilities
-  probs <- irf_fmp(theta = thetas, bmat = bmat)
+  probs <- irf_fmp(theta = thetas, bmat = bmat, 
+                   maxncat = maxncat, returncat = 0:(maxncat - 1))
 
   # avoid probs of 1 or 0
   probs[probs == 1] <- 1 - 1e-16
   probs[probs == 0] <- 1e-16
 
-  -sum(dat * log(probs) + (1 - dat) * log(1 - probs), na.rm = TRUE)
+  logprobs <- sapply(1:dim(probs)[2], function(i) log(probs[, i, ][cbind(1:dim(probs)[1], dat[, i] + 1)]))
+  
+  -sum(logprobs, na.rm = TRUE)
 }
 
-gr_logl <- function(parvec, dat, thetas, parmat){
+gr_logl <- function(parvec, dat, thetas, maxncat, parmat){
 
   dat <- as.matrix(dat)
 
   n_items <- ncol(dat)
+  ntheta <- nrow(dat)
 
   parmat$value[parmat$est] <- parvec
   pars <- matrix(parmat$value, nrow = n_items, byrow = TRUE)
 
-  maxk <- (ncol(pars) - 2) / 2
+  maxk <- (ncol(pars) - maxncat) / 2
 
-  xi <- pars[, 1]
-  omega <- pars[, 2]
+  xi <- pars[, 1:(maxncat - 1), drop = FALSE]
+  omega <- pars[, maxncat]
 
   if (maxk > 0){
-    alpha <- as.matrix(pars[, c(1 + 2 * (1:maxk))]) ## 3, 5, 7, ...
-    tau <- as.matrix(pars[, c(2 + 2 * (1:maxk))]) ## 4, 6, 8, ...
+    alpha <- as.matrix(pars[, c(maxncat - 1 + 2 * (1:maxk))]) ## 3, 5, 7, ...
+    tau <- as.matrix(pars[, c(maxncat + 2 * (1:maxk))]) ## 4, 6, 8, ...
 
     if (n_items == 1){
       alpha <- matrix(alpha, nrow = 1)
@@ -257,23 +260,25 @@ gr_logl <- function(parvec, dat, thetas, parmat){
     }
   }
 
-  bmat <- matrix(nrow = n_items, ncol = 2 * maxk + 2)
+  bmat <- matrix(nrow = n_items, ncol = 2 * maxk + maxncat)
 
   if (maxk == 0){
     for (it in 1:n_items){
-      bmat[it, ] <- greek2b(xi = xi[it], omega = omega[it],
+      bmat[it, ] <- greek2b(xi = xi[it, ], omega = omega[it],
                            alpha = NULL, tau = NULL)
     }
   }
 
   if (maxk > 0){
     for (it in 1:n_items){
-      bmat[it, ] <- greek2b(xi = xi[it], omega = omega[it],
+      bmat[it, ] <- greek2b(xi = xi[it, ], omega = omega[it],
                            alpha = alpha[it, ], tau = tau[it, ])
     }
   }
 
-  probs <- irf_fmp(theta = thetas, bmat = bmat)
+  # find probabilities
+  probs <- irf_fmp(theta = thetas, bmat = bmat,
+                   maxncat = maxncat, returncat = 0:(maxncat - 1))
 
   # avoid probs of 1 or 0
   probs[probs == 1] <- 1 - 1e-16
@@ -282,11 +287,34 @@ gr_logl <- function(parvec, dat, thetas, parmat){
   out <- matrix(nrow = n_items, ncol = ncol(pars))
 
   for (it in 1:n_items){
-    partial_m_mat <- sapply(thetas, partial_m,
-                            parveci = pars[it, ], maxk = maxk)
-
-    for (l in 1:ncol(pars)){
-      out[it, l] <- -sum( (dat[, it] - probs[, it]) * partial_m_mat[l, ], na.rm = TRUE)
+    partial_m_mat <- t(sapply(thetas, partial_m, ncat = maxncat,
+                             parveci = pars[it, ], maxk = maxk)) # N x (2 * maxk + maxncat)
+    probs_it <- as.matrix(probs[, it, ]) # N x maxcat
+    if(nrow(probs_it) != ntheta) probs_it <- t(probs_it)
+    g_it <- 1 / probs_it[, 1, drop = FALSE] # denominator N x 1
+    f_it <- as.matrix(apply(probs_it, 2, "*", g_it)) # numerator N x maxcat
+    if(nrow(f_it) != ntheta) f_it <- t(f_it)
+    
+    f1_it <- array(NA, dim = c(dim(partial_m_mat), maxncat))
+    f1_it[, , 1] <- 0
+    for(c in 2:maxncat){
+      f1_it[, 1:(maxncat - 1), c] <- 0
+      f1_it[, 1:(c-1), c] <- partial_m_mat[, 1:(c-1)] * f_it[, c]
+      f1_it[, maxncat:(dim(partial_m_mat)[2]), c] <- 
+        partial_m_mat[, maxncat:(dim(partial_m_mat)[2])] * (c - 1) * f_it[, c]
+    }
+    
+    g1_it <- apply(f1_it, c(1, 2), sum, na.rm = TRUE) # N x (2 * maxk + maxncat)
+    
+    for(l in 1:dim(partial_m_mat)[2]){
+      f1_it_l <- as.matrix(f1_it[, l, ])
+      if(nrow(f1_it_l) != ntheta) f1_it_l <- t(f1_it_l)
+      
+      # out[it, l] <- -sum((f1_it_l[cbind(1:ntheta, dat[, it] + 1)] * g_it - 
+      #                  f_it[cbind(1:ntheta, dat[, it] + 1)] * g1_it[, l]) / 
+      #   (f_it[cbind(1:ntheta, dat[, it] + 1)] * g_it))
+      
+      out[it, l] <- -sum(f1_it_l[cbind(1:ntheta, dat[, it] + 1)] / f_it[cbind(1:ntheta, dat[, it] + 1)] - g1_it[, l] / g_it)
     }
   }
 
@@ -294,7 +322,7 @@ gr_logl <- function(parvec, dat, thetas, parmat){
 
 }
 
-hess_logl <- function(parvec, dat, thetas, parmat){
+hess_logl <- function(parvec, dat, thetas, maxncat, parmat){ # use this is maxk = 0, else do cross-product of gradient
 
   dat <- as.matrix(dat)
 
@@ -304,81 +332,92 @@ hess_logl <- function(parvec, dat, thetas, parmat){
   pars <- matrix(parmat$value, nrow = n_items, byrow = TRUE)
 
   maxk <- (ncol(pars) - 2) / 2
-
-  xi <- pars[, 1]
-  omega <- pars[, 2]
-
-  if (maxk > 0){
-    alpha <- as.matrix(pars[, c(1 + 2 * (1:maxk))]) ## 3, 5, 7, ...
-    tau <- as.matrix(pars[, c(2 + 2 * (1:maxk))]) ## 4, 6, 8, ...
-
-    if (n_items == 1){
-      alpha <- matrix(alpha, nrow = 1)
-      tau <- matrix(tau, nrow = 1)
+  
+  if(maxncat == 2){
+    xi <- pars[, 1]
+    omega <- pars[, 2]
+    
+    if (maxk > 0){
+      alpha <- as.matrix(pars[, c(1 + 2 * (1:maxk))]) ## 3, 5, 7, ...
+      tau <- as.matrix(pars[, c(2 + 2 * (1:maxk))]) ## 4, 6, 8, ...
+      
+      if (n_items == 1){
+        alpha <- matrix(alpha, nrow = 1)
+        tau <- matrix(tau, nrow = 1)
+      }
     }
-  }
-
-  # convert greek parameters to b parameters
-  n_items <- 1
-
-  bmat <- matrix(nrow = n_items, ncol = 2 * maxk + 2)
-
-  if (maxk == 0){
+    
+    # convert greek parameters to b parameters
+    n_items <- 1
+    
+    bmat <- matrix(nrow = n_items, ncol = 2 * maxk + 2)
+    
+    if (maxk == 0){
+      for (it in 1:n_items){
+        bmat[it, ] <- greek2b(xi = xi[it], omega = omega[it],
+                              alpha = NULL, tau = NULL)
+      }
+    }
+    
+    if (maxk > 0){
+      for (it in 1:n_items){
+        bmat[it, ] <- greek2b(xi = xi[it], omega = omega[it],
+                              alpha = alpha[it, ], tau = tau[it, ])
+      }
+    }
+    
+    # find probabilities
+    probs <- irf_fmp(theta = thetas, bmat = bmat)
+    
+    # avoid probs of 1 or 0
+    probs[probs == 1] <- 1 - 1e-16
+    probs[probs == 0] <- 1e-16
+    
+    # compute hessian--block matrix
+    
+    OUT <- matrix(0, nrow = n_items * (2 * maxk + 2),
+                  ncol = n_items * (2 * maxk + 2))
     for (it in 1:n_items){
-      bmat[it, ] <- greek2b(xi = xi[it], omega = omega[it],
-                            alpha = NULL, tau = NULL)
-    }
-  }
-
-  if (maxk > 0){
-    for (it in 1:n_items){
-      bmat[it, ] <- greek2b(xi = xi[it], omega = omega[it],
-                            alpha = alpha[it, ], tau = tau[it, ])
-    }
-  }
-
-  # find probabilities
-  probs <- irf_fmp(theta = thetas, bmat = bmat)
-
-  # avoid probs of 1 or 0
-  probs[probs == 1] <- 1 - 1e-16
-  probs[probs == 0] <- 1e-16
-
-  # compute hessian--block matrix
-
-  OUT <- matrix(0, nrow = n_items * (2 * maxk + 2),
-                ncol = n_items * (2 * maxk + 2))
-  for (it in 1:n_items){
-    partial_m_mat <- sapply(thetas, partial_m,
-                            parveci = pars[it, ], maxk = maxk)
-    partial2_m_mat <- sapply(thetas, partial2_m,
-                             parveci = pars[it, ], maxk = maxk)
-
-    out <- idx <- matrix(0, nrow = 2 * maxk + 2, ncol = 2 * maxk + 2)
-    idx[lower.tri(t(idx), diag = TRUE)] <- 1:( (ncol(pars) + 1) *
-                                                 ncol(pars) / 2)
-    idx <- t(idx)
-
-    for (l in 1:(2 * maxk + 2)){
-      for (t in 1:(2 * maxk + 2)){
-        if (l <= t){
-          out[l, t] <- out[t, l] <- sum(probs[, it] * (1 - probs[, it]) *
-                                        partial_m_mat[l, ] *
-                                        partial_m_mat[t, ] -
-                                        (dat[, it] - probs[, it]) *
-                                        partial2_m_mat[idx[l, t], ], na.rm = TRUE)
-          OUT[ ( (it - 1) * (2 * maxk + 2) + 1):(it * (2 * maxk + 2)),
-              ( (it - 1) * (2 * maxk + 2) + 1):(it * (2 * maxk + 2))] <- out
+      partial_m_mat <- sapply(thetas, partial_m,
+                              parveci = pars[it, ], maxk = maxk)
+      partial2_m_mat <- sapply(thetas, partial2_m,
+                               parveci = pars[it, ], maxk = maxk)
+      
+      out <- idx <- matrix(0, nrow = 2 * maxk + 2, ncol = 2 * maxk + 2)
+      idx[lower.tri(t(idx), diag = TRUE)] <- 1:( (ncol(pars) + 1) *
+                                                   ncol(pars) / 2)
+      idx <- t(idx)
+      
+      for (l in 1:(2 * maxk + 2)){
+        for (t in 1:(2 * maxk + 2)){
+          if (l <= t){
+            out[l, t] <- out[t, l] <- sum(probs[, it] * (1 - probs[, it]) *
+                                            partial_m_mat[l, ] *
+                                            partial_m_mat[t, ] -
+                                            (dat[, it] - probs[, it]) *
+                                            partial2_m_mat[idx[l, t], ], na.rm = TRUE)
+            OUT[ ( (it - 1) * (2 * maxk + 2) + 1):(it * (2 * maxk + 2)),
+                 ( (it - 1) * (2 * maxk + 2) + 1):(it * (2 * maxk + 2))] <- out
+          }
         }
       }
     }
+  } else{
+    
+    crossprods <- lapply(1:length(thetas), function(i){
+      gr <- gr_logl(parvec = parmat$value, dat = dat[i, ], thetas = thetas[i], 
+                    maxncat = maxncat, parmat = parmat)
+      gr %*% t(gr)
+    })
+    
+    OUT <- Reduce("+", crossprods)
   }
-
+ 
   OUT
 }
 
-em_alg <- function(dat, eps = 1e-04,
-                  n_quad = 50, method, parmat, max_em, ...){
+em_alg <- function(dat, eps = 1e-04, maxncat = maxncat,
+                   n_quad = 49, method, parmat, max_em, ...){
 
   quad_nodes <- seq(-6, 6, length = n_quad)
   quad_wts <- dnorm(quad_nodes)
@@ -392,12 +431,12 @@ em_alg <- function(dat, eps = 1e-04,
   estep_out <- e_step(dat = dat, parvec = parmat$value[parmat$est],
                      n_quad = n_quad, quad_nodes = quad_nodes,
                      quad_wts = quad_wts, n_subj = n_subj,
-                     n_items = n_items, parmat = parmat)
+                     n_items = n_items, maxncat = maxncat, parmat = parmat)
   mstep_out <- m_step(estep_out,
                      parvec = estep_out$parvec,
                      quad_nodes = quad_nodes, quad_wts = quad_wts,
-                     n_subj = n_subj, n_items = n_items, method = method,
-                     parmat = parmat, ...)
+                     n_subj = n_subj, n_items = n_items, maxncat = maxncat, 
+                     method = method, parmat = parmat, ...)
 
   pars1 <- mstep_out$par
   maxchange <- NA
@@ -416,21 +455,16 @@ em_alg <- function(dat, eps = 1e-04,
     estep_out <- e_step(dat = dat, parvec = pars,
                        n_quad = n_quad, quad_nodes = quad_nodes,
                        quad_wts = quad_wts, n_subj = n_subj,
-                       n_items = n_items, parmat = parmat)
+                       n_items = n_items, maxncat = maxncat, parmat = parmat)
 
     mstep_out <- m_step(estep_out,
                        parvec = estep_out$parvec,
                        quad_nodes = quad_nodes, quad_wts = quad_wts,
                        n_subj = n_subj, n_items = n_items, method = method,
-                       parmat = parmat, ...)
+                       maxncat = maxncat, parmat = parmat, ...)
 
     pars1 <- mstep_out$par
     maxchange <- max(abs(pars1 - pars))
-    # cat(paste(rep("\b", 75), collapse = ""),
-    #     "iter: ", iter,
-    #     " M step conv:", mstep_out$convergence,
-    #     " maxchange = ", round(maxchange, 6),
-    #     " -logl = ", mstep_out$value)
 
     cat("\riter: ", iter,
         " M step conv:", mstep_out$convergence,
@@ -450,7 +484,7 @@ em_alg <- function(dat, eps = 1e-04,
 }
 
 e_step <- function(dat, parvec, n_quad, quad_nodes, quad_wts,
-                   n_subj, n_items, parmat){
+                   n_subj, n_items, maxncat, parmat){
 
   dat <- as.matrix(dat)
 
@@ -458,15 +492,15 @@ e_step <- function(dat, parvec, n_quad, quad_nodes, quad_wts,
   parmat$value[parmat$est] <- parvec
   pars <- matrix(parmat$value, nrow = n_items, byrow = TRUE)
 
-  maxk <- (ncol(pars) - 2) / 2
+  maxk <- (ncol(pars) - maxncat) / 2
 
-  xi <- pars[, 1]
-  omega <- pars[, 2]
+  xi <- pars[, 1:(maxncat - 1), drop = FALSE]
+  omega <- pars[, maxncat]
 
 
   if (maxk > 0){
-    alpha <- as.matrix(pars[, c(1 + 2 * (1:maxk))]) # 3, 5, 7, ...
-    tau <- as.matrix(pars[, c(2 + 2 * (1:maxk))]) # 4, 6, 8, ...
+    alpha <- as.matrix(pars[, c(maxncat - 1 + 2 * (1:maxk))]) # 3, 5, 7, ...
+    tau <- as.matrix(pars[, c(maxncat + 2 * (1:maxk))]) # 4, 6, 8, ...
 
     if (n_items == 1){
       alpha <- matrix(alpha, nrow = 1)
@@ -475,70 +509,70 @@ e_step <- function(dat, parvec, n_quad, quad_nodes, quad_wts,
   }
 
   # convert greek parameters to b parameters
-  bmat <- matrix(nrow = n_items, ncol = 2 * maxk + 2)
+  bmat <- matrix(nrow = n_items, ncol = 2 * maxk + maxncat)
   if (maxk == 0){
     for (it in 1:n_items){
-      bmat[it, ] <- greek2b(xi = xi[it], omega = omega[it],
+      bmat[it, ] <- greek2b(xi = xi[it, ], omega = omega[it],
                            alpha = NULL, tau = NULL)
     }
   }
 
   if (maxk > 0){
     for (it in 1:n_items){
-      bmat[it, ] <- greek2b(xi = xi[it], omega = omega[it],
+      bmat[it, ] <- greek2b(xi = xi[it, ], omega = omega[it],
                            alpha = alpha[it, ], tau = tau[it, ])
     }
   }
 
-  probs <- irf_fmp(theta = quad_nodes, bmat = bmat) # n_quad x n_items
+  probs <- irf_fmp(theta = quad_nodes, bmat = bmat, maxncat = maxncat,
+                   returncat = 0:(maxncat - 1)) # n_quad x n_items x maxncat
 
 # lxr is n_subj x n_quad
-  lxr <- t(apply(dat, 1, function(x) # dat is n_subj x n_items
-    apply(probs, 1, function(y) # probs is n_quad x n_items
-      prod(y ^ x * (1 - y) ^ (1 - x), na.rm = TRUE))))
+  lxr <- t(apply(dat, 1, function(x) # dat is n_subj x n_items: x is a response vector
+    apply(probs, 1, function(y) # probs is n_quad x n_items x maxncat: y is n_items x maxncat
+      prod(y[cbind(1:n_items, x + 1)], na.rm = TRUE))))
 
   # vector of denominators of length n_subj
   denoms <- apply(lxr, 1, function(x) t(x) %*% quad_wts)
 
   # expected item score:
-  r_bar <- sapply(1:n_items, function(j) # n_quad x n_items
-    sapply(1:n_quad, function(r)
-      sum(dat[, j] * lxr[, r] * quad_wts[r] / denoms, na.rm = TRUE)))
+  r_bar <- array(dim = c(n_quad, n_items, maxncat))
+  for(c in 0:(maxncat - 1)){
+    r_bar[, , c + 1] <- sapply(1:n_items, function(j) # n_quad x n_items
+      sapply(1:n_quad, function(r)
+        sum((dat[, j] == c) * lxr[, r] * quad_wts[r] / denoms, na.rm = TRUE)))
+  }
 
-  # expected number of persons at each quadpt
-  n_bar <- sapply(1:n_quad, function(r) sum(lxr[, r] * quad_wts[r] / denoms))
-
-  list(r_bar = r_bar, n_bar = n_bar,
-       parvec = parvec)
+  list(r_bar = r_bar, parvec = parvec)
 }
 
 m_step <- function(estep_out, parvec, quad_nodes, quad_wts,
-                   n_subj, n_items, method, parmat, ...){
+                   n_subj, n_items, maxncat, method, parmat, ...){
 
   optim(par = parvec,
         fn = logl_em, gr = gr_logl_em,
         method = method,
-        n_bar = estep_out$n_bar, r_bar = estep_out$r_bar,
+        r_bar = estep_out$r_bar,
         quad_nodes = quad_nodes, quad_wts = quad_wts,
-        n_subj = n_subj, n_items = n_items, parmat = parmat, ...)
+        n_subj = n_subj, n_items = n_items, 
+        maxncat = maxncat, parmat = parmat, ...)
 }
 
-logl_em <- function(parvec, n_bar, r_bar, quad_nodes, quad_wts,
-                    n_subj, n_items, parmat){
-
-  n_bar_mat <- n_bar %*% t(rep(1, n_items))
+logl_em <- function(parvec, 
+                    r_bar, quad_nodes, quad_wts,
+                    n_subj, n_items, maxncat, parmat){
 
   parmat$value[parmat$est] <- parvec
   pars <- matrix(parmat$value, nrow = n_items, byrow = TRUE)
 
-  maxk <- (ncol(pars) - 2) / 2
+  maxk <- (ncol(pars) - maxncat) / 2
 
-  xi <- pars[, 1]
-  omega <- pars[, 2]
+  xi <- pars[, 1:(maxncat - 1), drop = FALSE]
+  omega <- pars[, maxncat]
 
   if (maxk > 0){
-    alpha <- as.matrix(pars[, c(1 + 2 * (1:maxk))]) # 3, 5, 7, ...
-    tau <- as.matrix(pars[, c(2 + 2 * (1:maxk))]) # 4, 6, 8, ...
+    alpha <- as.matrix(pars[, c(maxncat - 1 + 2 * (1:maxk))]) # 3, 5, 7, ...
+    tau <- as.matrix(pars[, c(maxncat + 2 * (1:maxk))]) # 4, 6, 8, ...
 
     if (n_items == 1){
       alpha <- matrix(alpha, nrow = 1)
@@ -546,46 +580,47 @@ logl_em <- function(parvec, n_bar, r_bar, quad_nodes, quad_wts,
     }
   }
 
-  bmat <- matrix(nrow = n_items, ncol = 2 * maxk + 2)
+  bmat <- matrix(nrow = n_items, ncol = 2 * maxk + maxncat)
 
   if (maxk == 0){
     for (it in 1:n_items){
-      bmat[it, ] <- greek2b(xi = xi[it], omega = omega[it],
+      bmat[it, ] <- greek2b(xi = xi[it, ], omega = omega[it],
                            alpha = NULL, tau = NULL)
     }
   }
 
   if (maxk > 0){
     for (it in 1:n_items){
-      bmat[it, ] <- greek2b(xi = xi[it], omega = omega[it],
+      bmat[it, ] <- greek2b(xi = xi[it, ], omega = omega[it],
                            alpha = alpha[it, ], tau = tau[it, ])
     }
   }
-  probs <- irf_fmp(theta = quad_nodes, bmat = bmat)
+  probs <- irf_fmp(theta = quad_nodes, bmat = bmat, 
+                   maxncat = maxncat, returncat = 0:(maxncat - 1))
 
   # avoid probs of 1 or 0
   probs[probs == 1] <- 1 - 2e-16
   probs[probs == 0] <- 2e-16
 
-  -sum(r_bar * log(probs) + (n_bar_mat - r_bar) * log(1 - probs))
+  -sum(r_bar * log(probs))
 }
 
-gr_logl_em <- function(parvec, n_bar, r_bar, quad_nodes, quad_wts,
+gr_logl_em <- function(parvec, 
+                       r_bar, quad_nodes, quad_wts,
+                       maxncat = maxncat, 
                        n_subj, n_items, parmat){
-
-  r_bar <- matrix(r_bar, ncol = n_items)
 
   parmat$value[parmat$est] <- parvec
   pars <- matrix(parmat$value, nrow = n_items, byrow = TRUE)
 
-  maxk <- (ncol(pars) - 2) / 2
+  maxk <- (ncol(pars) - maxncat) / 2
 
-  xi <- pars[, 1]
-  omega <- pars[, 2]
+  xi <- pars[, 1:(maxncat - 1), drop = FALSE]
+  omega <- pars[, maxncat]
 
   if (maxk > 0){
-    alpha <- as.matrix(pars[, c(1 + 2 * (1:maxk))]) # 3, 5, 7, ...
-    tau <- as.matrix(pars[, c(2 + 2 * (1:maxk))]) # 4, 6, 8, ...
+    alpha <- as.matrix(pars[, c(maxncat - 1 + 2 * (1:maxk))]) # 3, 5, 7, ...
+    tau <- as.matrix(pars[, c(maxncat + 2 * (1:maxk))]) # 4, 6, 8, ...
 
     if (n_items == 1){
       alpha <- matrix(alpha, nrow = 1)
@@ -593,23 +628,24 @@ gr_logl_em <- function(parvec, n_bar, r_bar, quad_nodes, quad_wts,
     }
   }
 
-  bmat <- matrix(nrow = n_items, ncol = 2 * maxk + 2)
+  bmat <- matrix(nrow = n_items, ncol = 2 * maxk + maxncat)
 
   if (maxk == 0){
     for (it in 1:n_items){
-      bmat[it, ] <- greek2b(xi = xi[it], omega = omega[it],
+      bmat[it, ] <- greek2b(xi = xi[it, ], omega = omega[it],
                            alpha = NULL, tau = NULL)
     }
   }
 
   if (maxk > 0){
     for (it in 1:n_items){
-      bmat[it, ] <- greek2b(xi = xi[it], omega = omega[it],
+      bmat[it, ] <- greek2b(xi = xi[it, ], omega = omega[it],
                            alpha = alpha[it, ], tau = tau[it, ])
     }
   }
 
-  probs <- irf_fmp(theta = quad_nodes, bmat = bmat)
+  probs <- irf_fmp(theta = quad_nodes, bmat = bmat, 
+                   maxncat = maxncat, returncat = 0:(maxncat - 1))
 
   ## avoid probs of 1 or 0
   probs[probs == 1] <- 1 - 1e-16
@@ -618,10 +654,31 @@ gr_logl_em <- function(parvec, n_bar, r_bar, quad_nodes, quad_wts,
   out <- matrix(nrow = n_items, ncol = ncol(pars))
 
   for (it in 1:n_items){
-    part1 <- (r_bar[, it] - n_bar * probs[, it]) # quad_nodes
-    part2 <- t(partial_m_mat <- sapply(quad_nodes, partial_m,
-                                       parveci = pars[it, ], maxk = maxk))
-    out[it, ] <- -t(part1) %*% part2
+    partial_m_mat <- t(sapply(quad_nodes, partial_m, ncat = maxncat,
+                              parveci = pars[it, ], maxk = maxk)) # Q x (2 * maxk + maxncat)
+    probs_it <- as.matrix(probs[, it, ]) # Q x maxcat
+    if(nrow(probs_it) != length(quad_nodes)) probs_it <- t(probs_it)
+    g_it <- 1 / probs_it[, 1, drop = FALSE] # denominator Q x 1
+    f_it <- as.matrix(apply(probs_it, 2, "*", g_it)) # numerator Q x maxcat
+    if(nrow(f_it) != length(quad_nodes)) f_it <- t(f_it)
+    
+    f1_it <- array(NA, dim = c(dim(partial_m_mat), maxncat))
+    f1_it[, , 1] <- 0
+    for(c in 2:maxncat){
+      f1_it[, 1:(maxncat - 1), c] <- 0
+      f1_it[, 1:(c-1), c] <- partial_m_mat[, 1:(c-1)] * f_it[, c]
+      f1_it[, maxncat:(dim(partial_m_mat)[2]), c] <- 
+        partial_m_mat[, maxncat:(dim(partial_m_mat)[2])] * (c - 1) * f_it[, c]
+    }
+    
+    g1_it <- apply(f1_it, c(1, 2), sum, na.rm = TRUE) # Q x (2 * maxk + maxncat)
+    
+    for(l in 1:dim(partial_m_mat)[2]){
+      f1_it_l <- as.matrix(f1_it[, l, ])
+      if(nrow(f1_it_l) != length(quad_nodes)) f1_it_l <- t(f1_it_l)
+      
+      out[it, l] <- -sum(r_bar[, it, ] * (f1_it_l / f_it - (g1_it[, l] / g_it) %*% t(rep(1, maxncat))), na.rm = TRUE)
+    }
   }
 
   estmat <- matrix(parmat$est, nrow = n_items, byrow = TRUE)
