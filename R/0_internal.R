@@ -232,7 +232,12 @@ logl <- function(parvec, dat, thetas, maxncat = 2, parmat){
 
   logprobs <- sapply(1:dim(probs)[2], function(i) log(probs[, i, ][cbind(1:dim(probs)[1], dat[, i] + 1)]))
   
-  -sum(logprobs, na.rm = TRUE)
+  # calculate log priors
+  priormat <- subset(parmat, est & prior.type != "none")
+  priorlogl <- ifelse(nrow(priormat) > 0, 
+                      log(get(paste0("d", priormat$prior.type))(priormat$value, priormat$prior_1, priormat$prior_2)), 0)
+  
+  -sum(logprobs, na.rm = TRUE) - sum(priorlogl)
 }
 
 gr_logl <- function(parvec, dat, thetas, maxncat, parmat){
@@ -303,18 +308,26 @@ gr_logl <- function(parvec, dat, thetas, maxncat, parmat){
       f1_it[, maxncat:(dim(partial_m_mat)[2]), c] <- 
         partial_m_mat[, maxncat:(dim(partial_m_mat)[2])] * (c - 1) * f_it[, c]
     }
+    f1_it[f1_it == Inf] <- 1e308
+    f1_it[f1_it == -Inf] <- -1e308
     
     g1_it <- apply(f1_it, c(1, 2), sum, na.rm = TRUE) # N x (2 * maxk + maxncat)
     
+    priorinfo <- subset(parmat, parmat$item == it)
+    
     for(l in 1:dim(partial_m_mat)[2]){
+      
+      # can currently only handle normal priors
+      gr_prior <- ifelse(priorinfo$est[l] & priorinfo$prior.type[l] == "norm", 
+                         -(priorinfo$value[l] - priorinfo$prior_1[l]) / 
+                           priorinfo$prior_2[l]^2, 0)
+      
       f1_it_l <- as.matrix(f1_it[, l, ])
       if(nrow(f1_it_l) != ntheta) f1_it_l <- t(f1_it_l)
       
-      # out[it, l] <- -sum((f1_it_l[cbind(1:ntheta, dat[, it] + 1)] * g_it - 
-      #                  f_it[cbind(1:ntheta, dat[, it] + 1)] * g1_it[, l]) / 
-      #   (f_it[cbind(1:ntheta, dat[, it] + 1)] * g_it))
-      
-      out[it, l] <- -sum(f1_it_l[cbind(1:ntheta, dat[, it] + 1)] / f_it[cbind(1:ntheta, dat[, it] + 1)] - g1_it[, l] / g_it)
+      out[it, l] <- -sum(f1_it_l[cbind(1:ntheta, dat[, it] + 1)] / 
+                           f_it[cbind(1:ntheta, dat[, it] + 1)] - 
+                           g1_it[, l] / g_it) - gr_prior
     }
   }
 
@@ -601,8 +614,12 @@ logl_em <- function(parvec,
   # avoid probs of 1 or 0
   probs[probs == 1] <- 1 - 2e-16
   probs[probs == 0] <- 2e-16
+  
+  priormat <- subset(parmat, est & prior.type != "none")
+  priorlogl <- ifelse(nrow(priormat) > 0, 
+                      log(get(paste0("d", priormat$prior.type))(priormat$value, priormat$prior_1, priormat$prior_2)), 0)
 
-  -sum(r_bar * log(probs))
+  -sum(r_bar * log(probs)) - sum(priorlogl)
 }
 
 gr_logl_em <- function(parvec, 
@@ -670,14 +687,23 @@ gr_logl_em <- function(parvec,
       f1_it[, maxncat:(dim(partial_m_mat)[2]), c] <- 
         partial_m_mat[, maxncat:(dim(partial_m_mat)[2])] * (c - 1) * f_it[, c]
     }
+    f1_it[f1_it == Inf] <- 1e308
+    f1_it[f1_it == -Inf] <- -1e308
     
     g1_it <- apply(f1_it, c(1, 2), sum, na.rm = TRUE) # Q x (2 * maxk + maxncat)
     
+    priorinfo <- subset(parmat, parmat$item == it)
+    
     for(l in 1:dim(partial_m_mat)[2]){
+      # can currently only handle normal priors
+      gr_prior <- ifelse(priorinfo$est[l] & priorinfo$prior.type[l] == "norm", 
+                         -(priorinfo$value[l] - priorinfo$prior_1[l]) / 
+                           priorinfo$prior_2[l]^2, 0)
+      
       f1_it_l <- as.matrix(f1_it[, l, ])
       if(nrow(f1_it_l) != length(quad_nodes)) f1_it_l <- t(f1_it_l)
       
-      out[it, l] <- -sum(r_bar[, it, ] * (f1_it_l / f_it - (g1_it[, l] / g_it) %*% t(rep(1, maxncat))), na.rm = TRUE)
+      out[it, l] <- -sum(r_bar[, it, ] * (f1_it_l / f_it - (g1_it[, l] / g_it) %*% t(rep(1, maxncat))), na.rm = TRUE) - gr_prior
     }
   }
 

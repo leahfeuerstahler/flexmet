@@ -152,7 +152,11 @@
 #' @export
 
 
-fmp_1 <- function(dat, k, tsur, start_vals = NULL, method = "BFGS", ...){
+fmp_1 <- function(dat, k, tsur, start_vals = NULL, method = "BFGS", 
+                  priors = list(xi = c("none", NaN, NaN),
+                                omega = c("none", NaN, NaN),
+                                alpha = c("none", NaN, NaN),
+                                tau = c("none", NaN, NaN)), ...){
   
   missing <- is.na(dat)
   if(any(missing)){
@@ -182,6 +186,26 @@ fmp_1 <- function(dat, k, tsur, start_vals = NULL, method = "BFGS", ...){
     parmat$value[grepl("tau", parmat$name) & parmat$est] <- log(.1)
   } else
     parmat$value <- start_vals
+  
+  if(is.null(priors$xi)) priors$xi <- c("none", NaN, NaN)
+  if(is.null(priors$omega)) priors$omega <- c("none", NaN, NaN)
+  if(is.null(priors$alpha)) priors$alpha <- c("none", NaN, NaN)
+  if(is.null(priors$tau)) priors$tau <- c("none", NaN, NaN)
+  
+  parmat$prior.type <- "none"
+  parmat$prior_2 <- parmat$prior_1 <- NaN
+  parmat$prior.type[grep("xi", parmat$name)] <- priors$xi[1]
+  parmat$prior_1[grep("xi", parmat$name)] <- as.numeric(priors$xi[2])
+  parmat$prior_2[grep("xi", parmat$name)] <- as.numeric(priors$xi[3])
+  parmat$prior.type[grep("omega", parmat$name)] <- priors$omega[1]
+  parmat$prior_1[grep("omega", parmat$name)] <- as.numeric(priors$omega[2])
+  parmat$prior_2[grep("omega", parmat$name)] <- as.numeric(priors$omega[3])
+  parmat$prior.type[grep("alpha", parmat$name)] <- priors$alpha[1]
+  parmat$prior_1[grep("alpha", parmat$name)] <- as.numeric(priors$alpha[2])
+  parmat$prior_2[grep("alpha", parmat$name)] <- as.numeric(priors$alpha[3])
+  parmat$prior.type[grep("tau", parmat$name)] <- priors$tau[1]
+  parmat$prior_1[grep("tau", parmat$name)] <- as.numeric(priors$tau[2])
+  parmat$prior_2[grep("tau", parmat$name)] <- as.numeric(priors$tau[3])
 
   ## estimate the model
   mod <- optim(par = parmat$value,
@@ -227,7 +251,11 @@ fmp_1 <- function(dat, k, tsur, start_vals = NULL, method = "BFGS", ...){
 
 fmp <- function(dat, k, start_vals = NULL,
                 em = TRUE, eps = 1e-04, n_quad = 49,
-                method = "BFGS", max_em = 500, ...){
+                method = "BFGS", max_em = 500, 
+                priors = list(xi = c("none", NaN, NaN),
+                              omega = c("none", NaN, NaN),
+                              alpha = c("none", NaN, NaN),
+                              tau = c("none", NaN, NaN)), ...){
   
   missing <- apply(dat, 1, function(d) all(is.na(d)))
   if(any(missing)){
@@ -284,8 +312,28 @@ fmp <- function(dat, k, start_vals = NULL,
     parmat$value[grepl("tau", parmat$name) & parmat$est] <- log(.1)
   }
   
+  if(is.null(priors$xi)) priors$xi <- c("none", NaN, NaN)
+  if(is.null(priors$omega)) priors$omega <- c("none", NaN, NaN)
+  if(is.null(priors$alpha)) priors$alpha <- c("none", NaN, NaN)
+  if(is.null(priors$tau)) priors$tau <- c("none", NaN, NaN)
+  
+  parmat$prior.type <- "none"
+  parmat$prior_2 <- parmat$prior_1 <- NaN
+  parmat$prior.type[grep("xi", parmat$name)] <- priors$xi[1]
+  parmat$prior_1[grep("xi", parmat$name)] <- as.numeric(priors$xi[2])
+  parmat$prior_2[grep("xi", parmat$name)] <- as.numeric(priors$xi[3])
+  parmat$prior.type[grep("omega", parmat$name)] <- priors$omega[1]
+  parmat$prior_1[grep("omega", parmat$name)] <- as.numeric(priors$omega[2])
+  parmat$prior_2[grep("omega", parmat$name)] <- as.numeric(priors$omega[3])
+  parmat$prior.type[grep("alpha", parmat$name)] <- priors$alpha[1]
+  parmat$prior_1[grep("alpha", parmat$name)] <- as.numeric(priors$alpha[2])
+  parmat$prior_2[grep("alpha", parmat$name)] <- as.numeric(priors$alpha[3])
+  parmat$prior.type[grep("tau", parmat$name)] <- priors$tau[1]
+  parmat$prior_1[grep("tau", parmat$name)] <- as.numeric(priors$tau[2])
+  parmat$prior_2[grep("tau", parmat$name)] <- as.numeric(priors$tau[3])
+  
   if(em == "mirt"){
-    itemtype <- ifelse(maxk == 0, ifelse(maxncat == 2, "2PL", "gpcm"), "monopoly")
+    itemtype <- ifelse(k == 0, ifelse(ncat == 2, "2PL", "gpcm"), "monopoly")
     
     parvalues <- mirt::mirt(dat = as.data.frame(dat), model = 1, itemtype = itemtype,
                             monopoly.k = k, pars = "values", ...)
@@ -319,6 +367,21 @@ fmp <- function(dat, k, start_vals = NULL,
         }
       }
     }
+    
+    # priors
+    parvalues$prior.type[grep("xi", parvalues$name)] <- priors$xi[1]
+    parvalues$prior_1[grep("xi", parvalues$name)] <- as.numeric(priors$xi[2])
+    parvalues$prior_2[grep("xi", parvalues$name)] <- as.numeric(priors$xi[3])
+    parvalues$prior.type[grep("omega", parvalues$name)] <- priors$omega[1]
+    parvalues$prior_1[grep("omega", parvalues$name)] <- as.numeric(priors$omega[2])
+    parvalues$prior_2[grep("omega", parvalues$name)] <- as.numeric(priors$omega[3])
+    parvalues$prior.type[grep("alpha", parvalues$name)] <- priors$alpha[1]
+    parvalues$prior_1[grep("alpha", parvalues$name)] <- as.numeric(priors$alpha[2])
+    parvalues$prior_2[grep("alpha", parvalues$name)] <- as.numeric(priors$alpha[3])
+    parvalues$prior.type[grep("tau", parvalues$name)] <- priors$tau[1]
+    parvalues$prior_1[grep("tau", parvalues$name)] <- as.numeric(priors$tau[2])
+    parvalues$prior_2[grep("tau", parvalues$name)] <- as.numeric(priors$tau[3])
+  
     
     mod <- mirt::mirt(dat = as.data.frame(dat), model = 1, itemtype = itemtype,
                       monopoly.k = k, pars = parvalues, TOL = eps, 
