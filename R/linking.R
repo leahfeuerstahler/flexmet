@@ -9,26 +9,28 @@
 #'
 #' @param bmat1 FMP item parameters on an anchor test.
 #' @param bmat2 FMP item parameters to be rescaled.
+#' @param maxncat Maximum number of response categories (the first maxncat - 1
+#' columns of bmat1 and bmat2 are intercepts)
 #' @param cvec1 Vector of lower asymptote parameters for the anchor test.
 #' @param cvec2 Vector of lower asymptote parameters corresponding to the
 #' rescaled item parameters.
 #' @param dvec1 Vector of upper asymptote parameters for the anchor test.
 #' @param dvec2 Vector of upper asymptote parameters corresponding to the
 #' rescaled item parameters.
-#' @param k_theta Complexity of the latent trait transformation
-#' (k_theta = 0 is linear, k_theta > 0 is nonlinear).
-#' @param int Matrix with two columns, used for numerical integration.
-#' Column 1 is a grid of theta values, column 2 are normalized densities
-#' associated with the column 1 values.
+#' @param k_theta Complexity of the latent trait transformation (k_theta = 0 is
+#' linear, k_theta > 0 is nonlinear).
+#' @param int Matrix with two columns, used for numerical integration. Column 1
+#' is a grid of theta values, column 2 are normalized densities associated with
+#' the column 1 values.
 #' @param \dots Additional arguments passed to optim.
 #'
 #' @details The goal of item parameter linking is to find a metric
 #' transformation such that the fitted parameters for one test can be
-#' transformed to the same metric as those for the other test. In the
-#' Haebara approach, the overall sum of squared differences between the
-#' original and transformed individual item response functions is minimized.
-#' In the Stocking-Lord approach, the sum of squared differences between the
-#' original and transformed test response functions is minimized. See
+#' transformed to the same metric as those for the other test. In the Haebara
+#' approach, the overall sum of squared differences between the original and
+#' transformed individual item response functions is minimized. In the
+#' Stocking-Lord approach, the sum of squared differences between the original
+#' and transformed test response functions is minimized. See
 #' Feuerstahler (2016, 2019) for details on linking with the FMP model.
 #'
 #' @return
@@ -68,7 +70,7 @@
 #'                   k_theta = 0)
 #' }
 #'
-# #' check
+# # check
 # i <- 1 #item index
 #
 # rimse(fmp0_1$bmat[i, ], fmp0_2$bmat[i, ]) # before transformation
@@ -80,19 +82,20 @@
 #'
 #' Feuerstahler, L. M. (2016). \emph{Exploring alternate latent trait metrics
 #' with the filtered monotonic polynomial IRT model} (Unpublished dissertation).
-#' University of Minnesota, Minneapolis, MN. \url{http://hdl.handle.net/11299/182267}
-#' 
-#' Feuerstahler, L. M. (2019). Metric Transformations and the Filtered Monotonic 
-#' Polynomial Item Response Model. \emph{Psychometrika}, \emph{84}, 105--123. 
-#' \doi{10.1007/s11336-018-9642-9}
+#' University of Minnesota, Minneapolis, MN.
+#' \url{http://hdl.handle.net/11299/182267}
+#'
+#' Feuerstahler, L. M. (2019). Metric Transformations and the Filtered
+#' Monotonic Polynomial Item Response Model. \emph{Psychometrika}, \emph{84},
+#' 105--123. \doi{10.1007/s11336-018-9642-9}
 #'
 #' Haebara, T. (1980). Equating logistic ability scales by a weighted least
 #' squares method. \emph{Japanese Psychological Research}, \emph{22}, 144--149.
 #' \doi{10.4992/psycholres1954.22.144}
 #'
 #' Stocking, M. L., & Lord, F. M. (1983). Developing a common metric in item
-#' response theory. \emph{Applied Psychological Measurement}, \emph{7}, 201--210.
-#' \doi{10.1002/j.2333-8504.1982.tb01311.x}
+#' response theory. \emph{Applied Psychological Measurement}, \emph{7},
+#' 201--210. \doi{10.1002/j.2333-8504.1982.tb01311.x}
 #'
 #' @importFrom stats dnorm optim
 #' @export
@@ -125,24 +128,25 @@ sl_link <- function(bmat1, bmat2, maxncat = 2,
 
         theta1 <- int[, 1]
 
-        bmat2star <- t(apply(bmat2, 1, transform_b, tvec = tvec, ncat = maxncat))
+        bmat2star <- t(apply(bmat2, 1, transform_b, tvec = tvec,
+                             ncat = maxncat))
 
         irf1 <- irf_fmp(theta = theta1,
                         bmat = bmat1,
                         maxncat = maxncat,
                         cvec = cvec1,
-                        dvec = dvec1, 
+                        dvec = dvec1,
                         returncat = 0:(maxncat - 1))
-        irf1 <- apply(irf1, c(1, 2), function(x) 
+        irf1 <- apply(irf1, c(1, 2), function(x)
             sum(x * 0:(maxncat - 1), na.rm = TRUE))
-        
+
         irf2 <- irf_fmp(theta = theta1,
                         bmat = bmat2star,
                         maxncat = maxncat,
                         cvec = cvec2,
                         dvec = dvec2,
                         returncat = 0:(maxncat - 1))
-        irf2 <- apply(irf2, c(1, 2), function(x) 
+        irf2 <- apply(irf2, c(1, 2), function(x)
             sum(x * 0:(maxncat - 1), na.rm = TRUE))
 
         sqrt(sum(int[, 2] * (irf1 - irf2) ^ 2))
@@ -162,7 +166,7 @@ sl_link <- function(bmat1, bmat2, maxncat = 2,
                            omega = greekvec[maxncat]),
 
            # if k_theta > 0
-           tvec <- greek2b(xi = greekvec[1:(maxncat - 1)], 
+           tvec <- greek2b(xi = greekvec[1:(maxncat - 1)],
                            omega = greekvec[maxncat],
                            alpha = greekvec[c(maxncat - 1 + 2 * (1:k_theta))],
                            tau = greekvec[c(maxncat + 2 * (1:k_theta))]))
@@ -199,27 +203,28 @@ hb_link <- function(bmat1, bmat2, maxncat = 2,
 
         theta1 <- int[, 1]
 
-        bmat2star <- t(apply(bmat2, 1, transform_b, tvec = tvec, ncat = maxncat))
+        bmat2star <- t(apply(bmat2, 1, transform_b, tvec = tvec,
+                             ncat = maxncat))
 
         irf1 <- irf_fmp(theta = theta1,
                         bmat = bmat1,
                         maxncat = maxncat,
                         cvec = cvec1,
-                        dvec = dvec1, 
+                        dvec = dvec1,
                         returncat = 0:(maxncat - 1))
-        irf1 <- apply(irf1, c(1, 2), function(x) 
+        irf1 <- apply(irf1, c(1, 2), function(x)
             sum(x * 0:(maxncat - 1), na.rm = TRUE))
-        
+
         irf2 <- irf_fmp(theta = theta1,
                         bmat = bmat2star,
                         maxncat = maxncat,
                         cvec = cvec2,
                         dvec = dvec2,
                         returncat = 0:(maxncat - 1))
-        irf2 <- apply(irf2, c(1, 2), function(x) 
+        irf2 <- apply(irf2, c(1, 2), function(x)
             sum(x * 0:(maxncat - 1), na.rm = TRUE))
 
-        sqrt(sum(int[, 2] * rowSums( (irf1 - irf2) ^ 2)))
+        sqrt(sum(int[, 2] * rowSums((irf1 - irf2) ^ 2)))
     }
 
     out <- optim(par = c(0, 1, rep(0, 2 * k_theta)), fn = rimse_dif,
@@ -234,9 +239,9 @@ hb_link <- function(bmat1, bmat2, maxncat = 2,
            # if k_theta = 0
            tvec <- greek2b(xi = greekvec[1:(maxncat - 1)],
                            omega = greekvec[maxncat]),
-           
+
            # if k_theta > 0
-           tvec <- greek2b(xi = greekvec[1:(maxncat - 1)], 
+           tvec <- greek2b(xi = greekvec[1:(maxncat - 1)],
                            omega = greekvec[maxncat],
                            alpha = greekvec[c(maxncat - 1 + 2 * (1:k_theta))],
                            tau = greekvec[c(maxncat + 2 * (1:k_theta))]))

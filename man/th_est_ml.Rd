@@ -5,15 +5,25 @@
 \alias{th_est_eap}
 \title{Latent Trait Estimation}
 \usage{
-th_est_ml(dat, bmat, cvec = NULL, dvec = NULL, lb = -4, ub = 4)
+th_est_ml(dat, bmat, maxncat = 2, cvec = NULL, dvec = NULL, lb = -4, ub = 4)
 
-th_est_eap(dat, bmat, cvec = NULL, dvec = NULL, int = int_mat(npts = 33))
+th_est_eap(
+  dat,
+  bmat,
+  maxncat = 2,
+  cvec = NULL,
+  dvec = NULL,
+  int = int_mat(npts = 33)
+)
 }
 \arguments{
 \item{dat}{Data matrix of binary item responses with one column for each
 item. Alternatively, a vector of binary item responses for one person.}
 
 \item{bmat}{Matrix of FMP item parameters, one row for each item.}
+
+\item{maxncat}{Maximum number of response categories (the first maxncat - 1
+columns of bmat are intercepts)}
 
 \item{cvec}{Vector of lower asymptote parameters, one element for each item.}
 

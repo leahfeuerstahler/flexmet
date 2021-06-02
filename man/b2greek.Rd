@@ -5,10 +5,13 @@
 \title{Find the Greek-Letter Parameterization corresponding to a b Vector of
 Item Parameters}
 \usage{
-b2greek(bvec, eps = 1e-08)
+b2greek(bvec, ncat = 2, eps = 1e-08)
 }
 \arguments{
 \item{bvec}{b vector of item parameters (i.e., polynomial coefficients).}
+
+\item{ncat}{Number of response categories (first ncat - 1 elements of bvec
+are intercepts)}
 
 \item{eps}{Convergence tolerance.}
 }

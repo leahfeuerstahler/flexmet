@@ -7,6 +7,8 @@
 #' @param dat Data matrix of binary item responses with one column for each
 #' item. Alternatively, a vector of binary item responses for one person.
 #' @param bmat Matrix of FMP item parameters, one row for each item.
+#' @param maxncat Maximum number of response categories (the first maxncat - 1
+#' columns of bmat are intercepts)
 #' @param cvec Vector of lower asymptote parameters, one element for each item.
 #' @param dvec Vector of upper asymptote parameters, one element for each item.
 #' @param lb Lower bound at which to truncate ML estimates.
@@ -46,12 +48,12 @@ th_est_ml <- function(dat, bmat, maxncat = 2,
 
     # log likelihood function
     loglik <- function(theta, resp, maxncat, bmat, cvec, dvec) {
-        P <- irf_fmp(theta = theta, bmat = bmat, 
+        p <- irf_fmp(theta = theta, bmat = bmat,
                      maxncat = maxncat,
                      cvec = cvec, dvec = dvec,
-                     returncat = 0:(maxncat-1))
-        logP <- sapply(1:dim(P)[2], function(i) log(P[, i, resp[i] + 1]))
-        sum(logP)
+                     returncat = 0:(maxncat - 1))
+        log_p <- sapply(1:dim(p)[2], function(i) log(p[, i, resp[i] + 1]))
+        sum(log_p)
     }
 
     # find mles
@@ -83,21 +85,19 @@ th_est_eap <- function(dat, bmat, maxncat = 2,
                        cvec = NULL, dvec = NULL,
                        int = int_mat(npts = 33)) {
 
-  P <- irf_fmp(theta = int[, 1], bmat = bmat,
-               maxncat = maxncat, cvec = cvec, 
-               dvec = dvec, returncat = 0:(maxncat-1))
+  p <- irf_fmp(theta = int[, 1], bmat = bmat,
+               maxncat = maxncat, cvec = cvec,
+               dvec = dvec, returncat = 0:(maxncat - 1))
 
   # compute eaps and posterior standard deviations
   eaps <- apply(dat, 1, function(resp) {
 
-    # dat <- matrix(dat, ncol = length(dat), nrow = nrow(p), byrow = TRUE)
-    
-    lik <- sapply(1:dim(P)[2], function(i) P[, i, resp[i] + 1])
+    lik <- sapply(1:dim(p)[2], function(i) p[, i, resp[i] + 1])
     lik <- apply(lik, 1, prod)
 
     eap <- sum(int[, 1] * lik * int[, 2]) / sum(lik * int[, 2])
 
-    psd <- sqrt(sum( (int[, 1] - eap) ^ 2 * lik * int[, 2]) /
+    psd <- sqrt(sum((int[, 1] - eap) ^ 2 * lik * int[, 2]) /
                   sum(lik * int[, 2]))
 
     c(eap, psd)

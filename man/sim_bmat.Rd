@@ -4,15 +4,25 @@
 \alias{sim_bmat}
 \title{Randomly Generate FMP Parameters}
 \usage{
-sim_bmat(n_items, k, xi_dist = c(-1, 1), omega_dist = c(-1, 1),
-  alpha_dist = c(-1, 0.5), tau_dist = c(-7, -1))
+sim_bmat(
+  n_items,
+  k,
+  ncat = 2,
+  xi_dist = c(-1, 1),
+  omega_dist = c(-1, 1),
+  alpha_dist = c(-1, 0.5),
+  tau_dist = c(-7, -1)
+)
 }
 \arguments{
 \item{n_items}{Number of items for which to simulate item parameters.}
 
 \item{k}{Either a scalar for the item complexity of all items or a
-vector of length n_items if different items have different item
-complexities.}
+vector of length n_items if different items have different item complexities.}
+
+\item{ncat}{Vector of length n_item giving the number of response
+categories for each item. If of length 1, all items will have the same
+number of response categories}
 
 \item{xi_dist}{Vector of two elements indicating the lower and upper
 bounds of the uniform distribution from which to draw xsi parameters.}

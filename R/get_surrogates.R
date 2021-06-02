@@ -27,17 +27,17 @@
 
 
 get_surrogates <- function(dat) {
-  
+
   # remove rows with completely missing data
   missing <- apply(dat, 1, function(d) all(is.na(d)))
-  if(any(missing)){
+  if (any(missing)) {
     dat <- subset(dat, !missing)
     message(paste("Warning:", sum(missing), "rows removed due to missing data"))
   }
-  
+
   # mean imputation for missing data
-  if(any(is.na(dat))){
-    dat <- t(apply(dat, 1, function(d){ 
+  if (any(is.na(dat))) {
+    dat <- t(apply(dat, 1, function(d) {
       d[is.na(d)] <- mean(d[!is.na(d)])
       d}))
   }

@@ -4,19 +4,22 @@
 \alias{iif_fmp}
 \title{FMP Item Information Function}
 \usage{
-iif_fmp(theta, bmat, cvec = NULL, dvec = NULL)
+iif_fmp(theta, bmat, maxncat = 2, cvec = NULL, dvec = NULL)
 }
 \arguments{
 \item{theta}{Vector of latent trait parameters.}
 
-\item{bmat}{Items x parameters matrix of FMP item parameters
-(or a vector of FMP item parameters for a single item).}
+\item{bmat}{Items x parameters matrix of FMP item parameters (or a vector of
+FMP item parameters for a single item).}
 
-\item{cvec}{Optional vector of lower asymptote parameters.
-If cvec = NULL, then all lower asymptotes set to 0.}
+\item{maxncat}{Maximum number of response categories (the first maxncat - 1
+columns of bmat are intercepts).}
 
-\item{dvec}{Optional vector of upper asymptote parameters.
-If dvec = NULL, then all upper asymptotes set to 1.}
+\item{cvec}{Optional vector of lower asymptote parameters. If cvec = NULL,
+then all lower asymptotes set to 0.}
+
+\item{dvec}{Optional vector of upper asymptote parameters. If dvec = NULL,
+then all upper asymptotes set to 1.}
 }
 \value{
 Matrix of item information.

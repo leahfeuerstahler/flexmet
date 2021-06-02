@@ -4,19 +4,25 @@
 \alias{irf_fmp}
 \title{FMP Item Response Function}
 \usage{
-irf_fmp(theta, bmat, cvec = NULL, dvec = NULL)
+irf_fmp(theta, bmat, maxncat = 2, returncat = NA, cvec = NULL, dvec = NULL)
 }
 \arguments{
 \item{theta}{Vector of latent trait parameters.}
 
-\item{bmat}{Items x parameters matrix of FMP item parameters
-(or a vector of FMP item parameters for a single item).}
+\item{bmat}{Items x parameters matrix of FMP item parameters (or a vector of
+FMP item parameters for a single item).}
 
-\item{cvec}{Optional vector of lower asymptote parameters.
-If cvec = NULL, then all lower asymptotes set to 0.}
+\item{maxncat}{Maximum number of response categories (the first maxncat - 1
+columns of bmat are intercepts).}
 
-\item{dvec}{Optional vector of upper asymptote parameters.
-If dvec = NULL, then all upper asymptotes set to 1.}
+\item{returncat}{Response categories for which probabilities should be
+returned, 0,..., maxncat - 1.}
+
+\item{cvec}{Optional vector of lower asymptote parameters. If cvec = NULL,
+then all lower asymptotes set to 0.}
+
+\item{dvec}{Optional vector of upper asymptote parameters. If dvec = NULL,
+then all upper asymptotes set to 1.}
 }
 \value{
 Matrix of item response probabilities.

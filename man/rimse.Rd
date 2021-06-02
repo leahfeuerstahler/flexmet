@@ -4,7 +4,16 @@
 \alias{rimse}
 \title{Root Integrated Mean Squared Difference Between FMP IRFs}
 \usage{
-rimse(bvec1, bvec2, c1 = 0, d1 = 1, c2 = 0, d2 = 1, int = int_mat())
+rimse(
+  bvec1,
+  bvec2,
+  ncat = 2,
+  c1 = NULL,
+  d1 = NULL,
+  c2 = NULL,
+  d2 = NULL,
+  int = int_mat()
+)
 }
 \arguments{
 \item{bvec1}{Either a vector of FMP item parameters or a function
@@ -14,6 +23,9 @@ corresponding to the latent trait.}
 \item{bvec2}{Either a vector of FMP item parameters or a function
 corresponding to a non-FMP IRF. Functions should have exactly one argument,
 corresponding to the latent trait.}
+
+\item{ncat}{Number of response categories (first ncat - 1 elemnts of bvec1
+and bvec2 are intercepts)}
 
 \item{c1}{Lower asymptote parameter for bvec1.
 Ignored if bvec1 is a function.}

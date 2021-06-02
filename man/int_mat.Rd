@@ -4,12 +4,11 @@
 \alias{int_mat}
 \title{Numerical Integration Matrix}
 \usage{
-int_mat(distr = dnorm, par1 = 0, par2 = 1, lb = -4, ub = 4,
-  npts = 10000)
+int_mat(distr = dnorm, par1 = 0, par2 = 1, lb = -4, ub = 4, npts = 10000)
 }
 \arguments{
-\item{distr}{A density function with two user-specified parameters.
-Defaults to the normal distribution, but any density function is permitted}
+\item{distr}{A density function with two user-specified parameters. Defaults
+to the normal distribution (dnorm), but any density function is permitted.}
 
 \item{par1}{First parameter passed to distr.}
 

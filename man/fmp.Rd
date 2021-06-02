@@ -3,18 +3,38 @@
 \name{fmp}
 \alias{fmp}
 \alias{fmp_1}
-\alias{fmp}
 \title{Estimate FMP Item Parameters}
 \usage{
-fmp_1(dat, k, tsur, start_vals = NULL, method = "BFGS", ...)
+fmp_1(
+  dat,
+  k,
+  tsur,
+  start_vals = NULL,
+  method = "BFGS",
+  priors = list(xi = c("none", NaN, NaN), omega = c("none", NaN, NaN), alpha =
+    c("none", NaN, NaN), tau = c("none", NaN, NaN)),
+  ...
+)
 
-fmp(dat, k, start_vals = NULL, em = TRUE, eps = 1e-04, n_quad = 49,
-  method = "BFGS", max_em = 500, ...)
+fmp(
+  dat,
+  k,
+  start_vals = NULL,
+  em = TRUE,
+  eps = 1e-04,
+  n_quad = 49,
+  method = "BFGS",
+  max_em = 500,
+  priors = list(xi = c("none", NaN, NaN), omega = c("none", NaN, NaN), alpha =
+    c("none", NaN, NaN), tau = c("none", NaN, NaN)),
+  ...
+)
 }
 \arguments{
 \item{dat}{Vector of 0/1 item responses for N (# subjects) examinees.}
 
-\item{k}{Vector of item complexities for each item, see details.}
+\item{k}{Vector of item complexities for each item, see details. If
+k < ncol(dat), k's will be recycled.}
 
 \item{tsur}{Vector of N (# subjects) surrogate theta values.}
 
@@ -33,8 +53,17 @@ values, then inspect the outputted parmat data frame.}
 
 \item{method}{Optimization method passed to optim.}
 
-\item{em}{Logical, use random-effects estimation using the EM algorith? If
-FALSE, fixed effects estimation is used with theta surrogates.}
+\item{priors}{List of prior information used to estimate the item parameters.
+The list should have up to 4 elements named xi, omega, alpha, tau. Each list
+should be a vector of length 3: the name of the prior distribution ("norm" or
+"none"), the first parameter of the prior distribution, and the second
+parameter of the prior distribution. Currently, "norm" and 'none" are the
+only available prior distributions.}
+
+\item{em}{If "mirt", use the mirt (Chalmers, 2012) package to estimate
+item parameters. If TRUE, random-effects estimation is used via the EM
+algorithm. If FALSE, fixed effects estimation is used with theta
+surrogates.}
 
 \item{eps}{Covergence tolerance for the EM algorithm. The EM algorithm is
 said to converge is the maximum absolute difference between parameter
@@ -43,9 +72,10 @@ estimates for successive iterations is less than eps. Ignored if em = FALSE.}
 \item{n_quad}{Number of quadrature points for EM integration. Ignored if
 em = FALSE}
 
-\item{max_em}{Maximum number of EM iterations.}
+\item{max_em}{Maximum number of EM iterations (for em = TRUE only).}
 
-\item{\ldots}{Additional arguments passed to optim.}
+\item{\ldots}{Additional arguments passed to optim (if em != "mirt") or mirt
+(if em == "mirt").}
 }
 \value{
 \item{bmat}{Matrix of estimated b-matrix parameters, each row corresponds
@@ -54,7 +84,8 @@ to an item, and contains b0, b1, ...b(max(k)).}
 Greek-letter parameterization, starting value, and parameter estimate.}
 \item{k}{Vector of item complexities chosen for each item.}
 \item{log_lik}{Model log likelihood.}
-\item{mod}{Optimization information, including output from optim.}
+\item{mod}{If em == "mirt", the mirt object. Otherwise, optimization
+information, including output from optim.}
 \item{AIC}{Model AIC.}
 \item{BIC}{Model BIC.}
 }
@@ -67,8 +98,8 @@ for multiple items using fixed-effects or random-effects with fmp.
 The FMP item response function for a single item is specified using
 the composite function,
 \deqn{P(\theta)=[1+\exp(-m(\theta))]^{-1},}{P(\theta)=[1+exp(-m(\theta))]^{-1},}
-where \eqn{m(\theta)} is an unbounded and monotonically
-increasing polynomial function of the latent trait \eqn{\theta}.
+where \eqn{m(\theta)} is an unbounded and monotonically increasing polynomial
+function of the latent trait \eqn{\theta}.
 
 The item complexity parameter \eqn{k} controls the degree of the polynomial:
 \deqn{m(\theta)=b_0+b_1\theta+b_2\theta^{2}+...+b_{2k+1}
@@ -128,6 +159,10 @@ fmp0_random <- fmp(dat = dat, k = 0, em = TRUE)
 
 }
 \references{
+Chalmers, R. P. (2012). mirt: A multidimensional item response theory
+package for the R environment. \emph{Journal of Statistical Software},
+\emph{48}, 1--29. \doi{10.18637/jss.v048.i06}
+
 Elphinstone, C. D. (1983). A target distribution model for nonparametric
 density estimation. \emph{Communication in Statistics--Theory
 and Methods}, \emph{12}, 161--198. \doi{10.1080/03610928308828450}
@@ -147,7 +182,12 @@ the context of guessing. \emph{Journal of Educational Measurement},
 
 Feuerstahler, L. M. (2016). \emph{Exploring alternate latent trait metrics
 with the filtered monotonic polynomial IRT model} (Unpublished dissertation).
-University of Minnesota, Minneapolis, MN. \url{http://hdl.handle.net/11299/182267}
+University of Minnesota, Minneapolis, MN.
+\url{http://hdl.handle.net/11299/182267}
+
+Feuerstahler, L. M. (2019). Metric Transformations and the Filtered
+Monotonic Polynomial Item Response Model. \emph{Psychometrika}, \emph{84},
+105--123. \doi{10.1007/s11336-018-9642-9}
 
 Liang, L. (2007). \emph{A semi-parametric approach to estimating item
 response functions} (Unpublished dissertation). The Ohio

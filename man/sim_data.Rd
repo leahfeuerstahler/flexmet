@@ -4,18 +4,21 @@
 \alias{sim_data}
 \title{Simulate FMP Data}
 \usage{
-sim_data(bmat, theta, cvec = NULL, dvec = NULL)
+sim_data(bmat, theta, maxncat = 2, cvec = NULL, dvec = NULL)
 }
 \arguments{
 \item{bmat}{Matrix of FMP item parameters.}
 
 \item{theta}{Vector of latent trait values.}
 
-\item{cvec}{Optional vector of lower asymptote parameters.
-If cvec = NULL, then all lower asymptotes set to 0.}
+\item{maxncat}{Maximum number of response categories  (the first maxncat - 1
+columns of bmat are intercepts)}
 
-\item{dvec}{Optional vector of upper asymptote parameters.
-If dvec = NULL, then all upper asymptotes set to 1.}
+\item{cvec}{Optional vector of lower asymptote parameters. If cvec = NULL,
+then all lower asymptotes set to 0.}
+
+\item{dvec}{Optional vector of upper asymptote parameters. If dvec = NULL,
+then all upper asymptotes set to 1.}
 }
 \value{
 Matrix of randomly generated binary item responses.
