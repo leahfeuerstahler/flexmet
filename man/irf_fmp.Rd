@@ -33,15 +33,19 @@ for user-supplied item and person parameters.
 }
 \examples{
 
-# plot the IRF for an item with k = 2
+# plot the IRF for an item with 4 response categories and k = 2
 
 set.seed(2342)
-bmat <- sim_bmat(n_items = 1, k = 2)$bmat
+bmat <- sim_bmat(n_items = 1, ncat = 4, k = 2)$bmat
 
 theta <- seq(-3, 3, by = .01)
 
-probability <- irf_fmp(theta = theta, bmat = bmat)
+probability <- irf_fmp(theta = theta, bmat = bmat,
+                       maxncat = 4, returncat = 0:3)
 
-plot(theta, probability, type = 'l')
+plot(theta, probability[, , 1], type = 'l', ylab = "probability")
+points(theta, probability[, , 2], type = 'l')
+points(theta, probability[, , 3], type = 'l')
+points(theta, probability[, , 4], type = 'l')
 
 }

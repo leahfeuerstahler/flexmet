@@ -47,6 +47,11 @@ where
 \deqn{\theta = t_0 + t_1\theta^\star + t_2\theta^{\star 2} + \cdots +
 t_{2k_\theta+1}\theta^{\star2k_\theta+1}}{\theta = t0 + t1\theta* +
 t2\theta*^2 + ... + t_{2k_\theta+1}\theta*^{2k_\theta+1}.}
+
+When using inv_transform_b, be aware that multiple tvec/bstarvec pairings 
+will lead to the same bvec. Users are advised not to use the 
+inv_transform_b function unless bstarvec has first been calculated by a call
+to transform_b.
 }
 \examples{
 

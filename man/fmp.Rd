@@ -31,7 +31,8 @@ fmp(
 )
 }
 \arguments{
-\item{dat}{Vector of 0/1 item responses for N (# subjects) examinees.}
+\item{dat}{Vector of item responses for N (# subjects) examinees. Binary 
+data should be coded 0/1, and polytomous data should be coded 0, 1, 2, etc.}
 
 \item{k}{Vector of item complexities for each item, see details. If
 k < ncol(dat), k's will be recycled.}
@@ -41,11 +42,11 @@ k < ncol(dat), k's will be recycled.}
 \item{start_vals}{Start values, For fmp_1, a vector of length 2k+2 in the
 following order:
 
-If k = 0: (xi, omega)
+If k = 0: (xi_1, ..., x_{C_i - 1}, omega)
 
-If k = 1: (xi, omega, alpha1, tau1)
+If k = 1: (xi_1, ..., x_{C_i - 1}, omega, alpha1, tau1)
 
-If k = 2: (xi, omega, alpha1, tau1, alpha2, tau2)
+If k = 2: (xi_1, ..., x_{C_i - 1}, omega, alpha1, tau1, alpha2, tau2)
 
 and so forth. For fmp, add start values for item 1, followed by those for
 item 2, and so forth. For further help, first fit the model without start
@@ -95,25 +96,25 @@ theta values (fixed-effects) using fmp_1, or estimate FMP item parameters
 for multiple items using fixed-effects or random-effects with fmp.
 }
 \details{
-The FMP item response function for a single item is specified using
-the composite function,
-\deqn{P(\theta)=[1+\exp(-m(\theta))]^{-1},}{P(\theta)=[1+exp(-m(\theta))]^{-1},}
+The FMP item response function for a single item \eqn{i} with 
+responses in categories \eqn{c = 0, ..., C_i - 1} is specified using the 
+composite function,
+\deqn{P(X_i = c | \theta) = exp(\sum_{v=0}^c(b_{iv} + m_i(\theta))) / 
+(\sum_{u=0}^{C_i - 1} exp(\sum_{v=0}^u(b_{iv} + m_i(\theta)))) }
 where \eqn{m(\theta)} is an unbounded and monotonically increasing polynomial
-function of the latent trait \eqn{\theta}.
+function of the latent trait \eqn{\theta}, excluding the intercept (s). 
 
 The item complexity parameter \eqn{k} controls the degree of the polynomial:
-\deqn{m(\theta)=b_0+b_1\theta+b_2\theta^{2}+...+b_{2k+1}
+\deqn{m(\theta)=b_1\theta+b_2\theta^{2}+...+b_{2k+1}
 \theta^{2k+1},}{m(\theta)=b0+b1\theta+b2\theta^{2}+...+b(2k+1)\theta^{2k+1},}
 where \eqn{2k+1} equals the order of the polynomial,
 \eqn{k} is a nonnegative integer, and
-\deqn{b=(b0,b1,...,b(2k+1))'}
+\deqn{b=(b1,...,b(2k+1))'}
 are item parameters that define the location and shape of the IRF. The
 vector \eqn{b} is called the b-vector parameterization of the FMP Model.
-When \eqn{k=0}, the FMP IRF equals
-\deqn{P(\theta)= [1+\exp(-(b_0+b_1\theta))] ^{-1},}{P(\theta)=
-[1+exp(-(b0+b1\theta))] ^{-1},}
-and is equivalent to the slope-threshold parameterization of the
-two-parameter item response model.
+When \eqn{k=0}, the FMP IRF equals either the slope-threshold 
+parameterization of the two-parameter item response model (if maxncat = 2) 
+or Muraki's (1992) generalized partial credit model (if maxncat > 2).
 
 For \eqn{m(\theta)} to be a monotonic function, the FMP IRF can also be
 expressed as a function of the vector
@@ -123,17 +124,17 @@ expressed as a function of the vector
 \tau2, ... \alpha_k, \tau_k)'.}
 
 The \eqn{\gamma} vector is called the Greek-letter parameterization of the
-FMP model. See Feuerstahler (2016) or Liang & Browne (2015) for details
-about the relationship between the b-vector and Greek-letter
-parameterizations.
+FMP model. See Falk & Cai (2016a), Feuerstahler (2016), or Liang & Browne 
+(2015) for details about the relationship between the b-vector and 
+Greek-letter parameterizations.
 }
 \examples{
 
-set.seed(2342)
-bmat <- sim_bmat(n_items = 5, k = 2)$bmat
+set.seed(2345)
+bmat <- sim_bmat(n_items = 5, k = 2, ncat = 4)$bmat
 
 theta <- rnorm(50)
-dat <- sim_data(bmat = bmat, theta = theta)
+dat <- sim_data(bmat = bmat, theta = theta, maxncat = 4)
 
 ## fixed-effects estimation for item 1
 
@@ -153,9 +154,13 @@ fmp2_it_1 <- fmp_1(dat = dat[, 1], k = 2, tsur = tsur)
 
 fmp0_fixed <- fmp(dat = dat, k = 0, em = FALSE)
 
-## random-effects estimation for all items
+## random-effects estimation
 
 fmp0_random <- fmp(dat = dat, k = 0, em = TRUE)
+
+## random-effects estimation using mirt's estimation engine
+
+fmp0_mirt <- fmp(dat = dat, k = 0, em = "mirt")
 
 }
 \references{
@@ -196,4 +201,8 @@ State University, Columbus, OH. Retrieved from https://etd.ohiolink.edu/
 Liang, L., & Browne, M. W. (2015). A quasi-parametric method for
 fitting flexible item response functions. \emph{Journal of Educational
 and Behavioral Statistics}, \emph{40}, 5--34. \doi{10.3102/1076998614556816}
+
+Muraki, E. (1992). A generalized partial credit model: Application of an EM
+algorithm. \emph{Applied Psychological Measurement}, \emph{16}, 159--176. 
+\doi{10.1177/014662169201600206}
 }

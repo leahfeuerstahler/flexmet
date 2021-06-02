@@ -51,14 +51,15 @@ complexities and prior distributions.
 Randomly generate FMP item parameters for a given k value.
 }
 \examples{
-## generate FMP item parameters for 5 items all with k = 2
+## generate FMP item parameters for 5 dichotomous items all with k = 2
 set.seed(2342)
 pars <- sim_bmat(n_items = 5, k = 2)
 pars$bmat
 
-## generate FMP item parameters for 5 items with varying k values
+## generate FMP item parameters for 5 items with varying k values and 
+##  varying numbers of response categories
 set.seed(2432)
-pars <- sim_bmat(n_items = 5, k = c(1, 2, 0, 0, 2))
+pars <- sim_bmat(n_items = 5, k = c(1, 2, 0, 0, 2), ncat = c(2, 3, 4, 5, 2))
 pars$bmat
 
 }

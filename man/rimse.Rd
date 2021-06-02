@@ -44,7 +44,8 @@ Column 1 is a grid of theta values, column 2 are normalized densities
 associated with the column 1 values}
 }
 \value{
-Root integrated mean squared difference between two IRFs.
+Root integrated mean squared difference between two IRFs
+(dichotomous items) or expected item scores (polytomous items).
 }
 \description{
 Compute the root integrated mean squared error (RIMSE) between two FMP IRFs.
@@ -52,20 +53,24 @@ Compute the root integrated mean squared error (RIMSE) between two FMP IRFs.
 \examples{
 
 set.seed(2342)
-bmat <- sim_bmat(n_items = 1, k = 2)$bmat
+bmat <- sim_bmat(n_items = 2, k = 2, ncat = c(2, 5))$bmat
 
 theta <- rnorm(500)
-dat <- sim_data(bmat = bmat, theta = theta)
+dat <- sim_data(bmat = bmat, theta = theta, maxncat = 5)
 
 # k = 0
-fmp0 <- fmp_1(dat = dat, k = 0, tsur = theta)
+fmp0a <- fmp_1(dat = dat[, 1], k = 0, tsur = theta)
+fmp0b <- fmp_1(dat = dat[, 2], k = 0, tsur = theta)
 
 # k = 1
-fmp1 <- fmp_1(dat = dat, k = 1, tsur = theta)
+fmp1a <- fmp_1(dat = dat[, 1], k = 1, tsur = theta)
+fmp1b <- fmp_1(dat = dat[, 2], k = 1, tsur = theta)
 
 ## compare estimated curves to the data-generating curve
-rimse(fmp0$bmat, bmat)
-rimse(fmp1$bmat, bmat)
+rimse(fmp0a$bmat, bmat[1, -c(2:4)])
+rimse(fmp1a$bmat, bmat[1, -c(2:4)])
+rimse(fmp0b$bmat, bmat[2, ], ncat = 5)
+rimse(fmp1b$bmat, bmat[2, ], ncat = 5)
 
 
 }

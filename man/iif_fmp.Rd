@@ -30,7 +30,7 @@ for user-supplied item and person parameters.
 }
 \examples{
 
-# plot the IIF for an item with k = 2
+# plot the IIF for a dichotomous item with k = 2
 
 set.seed(2342)
 bmat <- sim_bmat(n_items = 1, k = 2)$bmat

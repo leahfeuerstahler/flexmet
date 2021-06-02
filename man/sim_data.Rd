@@ -29,13 +29,13 @@ latent trait parameters.
 }
 \examples{
 
-## generate binary item responses for normally distributed theta
+## generate 5-category item responses for normally distributed theta
 ##   and 5 items with k = 2
 
 set.seed(2342)
-bmat <- sim_bmat(n_items = 5, k = 2)$bmat
+bmat <- sim_bmat(n_items = 5, k = 2, ncat = 5)$bmat
 
 theta <- rnorm(50)
-dat <- sim_data(bmat = bmat, theta = theta)
+dat <- sim_data(bmat = bmat, theta = theta, maxncat = 5)
 
 }
