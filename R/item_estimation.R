@@ -413,7 +413,12 @@ fmp <- function(dat, k, start_vals = NULL,
     mirtests <- mirt::extract.mirt(mod, "parvec")
     mirtests <- tapply(mirtests, parmat$item[parmat$est], function(x) {
       x[c(1, 2:maxncat)] <- x[c(2:maxncat, 1)]
-      if (length(x) == maxncat) x[maxncat] <- log(x[maxncat])
+      if (length(x) == maxncat){
+        x[maxncat] <- log(x[maxncat])
+        if(maxncat > 2){
+          for(i in 3:maxncat) x[i - 1] <- x[i - 1] - sum(x[1:(i - 2)])
+        }
+      } 
       x
     })
 
