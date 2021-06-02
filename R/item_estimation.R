@@ -329,8 +329,8 @@ fmp <- function(dat, k, start_vals = NULL,
         qnorm(cumsum(table(dat[, i]))[1:(ncat[i] - 1)] / length(dat[, i]))
     }
     parmat$value[grep("omega", parmat$name)] <- log(1)
-    parmat$value[grepl("alpha", parmat$name) & parmat$est] <- .1
-    parmat$value[grepl("tau", parmat$name) & parmat$est] <- log(.1)
+    parmat$value[grepl("alpha", parmat$name) & parmat$est] <- 0
+    parmat$value[grepl("tau", parmat$name) & parmat$est] <- log(.01)
   }
 
   if (is.null(priors$xi)) priors$xi <- c("none", NaN, NaN)

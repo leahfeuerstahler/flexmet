@@ -469,7 +469,7 @@ em_alg <- function(dat, eps = 1e-04, maxncat = maxncat,
   maxchange <- 10
 
   # iterate
-  while ((iter < 5 | abs(maxchange) > eps) & iter < max_em) {
+  while (abs(maxchange) > eps & iter < max_em) {
     iter <- iter + 1
     pars <- pars1
 
