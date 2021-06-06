@@ -486,6 +486,12 @@ em_alg <- function(dat, eps = 1e-04, maxncat = maxncat,
 
     pars1 <- mstep_out$par
     maxchange <- max(abs(pars1 - pars))
+    
+    # if too small of change, add some noise to unstick the algorithm
+    if(maxchange < 10e-9) {
+      pars1 <- pars1 + rnorm(length(pars1), sd = .001)
+      maxchange <- max(abs(pars1 - pars))
+      }
 
     cat("\riter: ", iter,
         " M step conv:", mstep_out$convergence,

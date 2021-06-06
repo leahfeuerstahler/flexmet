@@ -173,7 +173,7 @@
 #' @export
 
 
-fmp_1 <- function(dat, k, tsur, start_vals = NULL, method = "BFGS",
+fmp_1 <- function(dat, k, tsur, start_vals = NULL, method = "CG",
                   priors = list(xi = c("none", NaN, NaN),
                                 omega = c("none", NaN, NaN),
                                 alpha = c("none", NaN, NaN),
