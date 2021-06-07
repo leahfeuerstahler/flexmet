@@ -21,29 +21,29 @@ library(flexmet)
 The flexmet package provides utilities for use with the filtered monotonic 
 polynomial (FMP) item response model. One of the unique features of the FMP 
 model is the ability to transform the model to a user-specified metric. The
-FMP model can also transform the two-, three-, and four-parameter models.
+FMP model can also transform the two-, three-, and four-parameter models, as 
+well as generalized partial credit models.
 
 # The FMP Model
 
-The FMP IRF is specified using the composite function,
+A general form of the FMP model is specified using the composite function,
 
 \[
-P_i(\theta)=[1+\exp(-m(\theta))]^{-1},
+P(X_i = c | \theta) = \exp\left(\sum_{v=0}^c(b_{0i_{v}} + m_i(\theta))\right) /
+\left(\sum_{u=0}^{C_i - 1}\exp\left(\sum_{v=0}^u(b_{0i_{v}} + m_i(\theta))\right)\right)
 \]
-where for item $i$, $m_{i}(\theta)$ is an unbounded and monotonically
-increasing polynomial function of the latent trait $\theta$. Specifically,
-let 
+
+where $P$ indicates the probability of a response in category $c$, $c = 0, \ldots, C_i - 1$, $\theta$ is the latent trait parameter, $b_{iv}$ indicates an intercept for category $v$, $v = 1, \ldots, C_i - 1$, and $\sum_{v=0}^0(b_{iv} + m_i(\theta))  \equiv 0$. In addition, let 
 
 \[
-m_{i}(\theta)=b_{0i}+b_{1i}\theta+b_{2i}\theta^{2}+\cdots+
+m_{i}(\theta)=b_{1i}\theta+b_{2i}\theta^{2}+\cdots+
 b_{2k_{i}+1,i}\theta^{2k_{i}+1},
 \]
 where $2k_{i}+1$ equals the order of the polynomial for item $i$,
-$k_{i}$ is a nonnegative integer, and $\boldsymbol{b}_{i}=(b_{0i},b_{1i},\ldots,b_{2k_{i}+1,i})^{\prime}$
-are item parameters that define the location and shape of the IRF.
+$k_{i}$ is a nonnegative integer, and $\boldsymbol{b}_{i}=(b_{0i_{1}},\ldots, b_{0i_{C_i-1}} b_{1i},\ldots,b_{2k_{i}+1,i})^{\prime}$
+are item parameters that define the location and shape of the IRF. When $k = 0$, the general FMP model reduces to the two-parameter item response model (for binary item responses) or the generalized partial credit model (for polytomous item responses).
 
-Currently, flexmet only handles binary (0/1) item responses. Some functions 
-also include a lower asymptote parameter $c_i$ and upper asymptote parameter
+For models with binary (0/1) item responses, flexmet also allows the use to include a lower asymptote parameter $c_i$ and upper asymptote parameter
 $d_i$ for the extended FMP model:
 
 \[

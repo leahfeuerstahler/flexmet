@@ -61,14 +61,14 @@
 #' @details The FMP item response function for a single item \eqn{i} with 
 #' responses in categories \eqn{c = 0, ..., C_i - 1} is specified using the 
 #' composite function,
-#' \deqn{P(X_i = c | \theta) = exp(\sum_{v=0}^c(b_{iv} + m_i(\theta))) / 
-#' (\sum_{u=0}^{C_i - 1} exp(\sum_{v=0}^u(b_{iv} + m_i(\theta)))) }
+#' \deqn{P(X_i = c | \theta) = exp(\sum_{v=0}^c(b_0i_{v}} + m_i(\theta))) / 
+#' (\sum_{u=0}^{C_i - 1} exp(\sum_{v=0}^u(b_{0i_{v}} + m_i(\theta)))) }
 #' where \eqn{m(\theta)} is an unbounded and monotonically increasing polynomial
 #' function of the latent trait \eqn{\theta}, excluding the intercept (s). 
 #'
 #' The item complexity parameter \eqn{k} controls the degree of the polynomial:
 #' \deqn{m(\theta)=b_1\theta+b_2\theta^{2}+...+b_{2k+1}
-#' \theta^{2k+1},}{m(\theta)=b0+b1\theta+b2\theta^{2}+...+b(2k+1)\theta^{2k+1},}
+#' \theta^{2k+1},}{m(\theta)=b1\theta+b2\theta^{2}+...+b(2k+1)\theta^{2k+1},}
 #' where \eqn{2k+1} equals the order of the polynomial,
 #' \eqn{k} is a nonnegative integer, and
 #' \deqn{b=(b1,...,b(2k+1))'}
