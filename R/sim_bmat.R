@@ -47,7 +47,7 @@ sim_bmat <- function(n_items, k,
                      xi_dist = c(-1, 1),
                      omega_dist = c(-1, 1),
                      alpha_dist = c(-1, .5),
-                     tau_dist = c(-7, -1)) {
+                     tau_dist = c(-3, 0)) {
 
   maxk <- max(k)
 
@@ -75,7 +75,8 @@ sim_bmat <- function(n_items, k,
   tau <- matrix(-Inf, nrow = n_items, ncol = maxk)
 
   for (i in 1:n_items) {
-    if (ncat[i] < maxncat) xi[i, ncat[i]:ncol(xi)] <- NA
+    if (ncat[i] < maxncat) xi[i, ncat[i]:ncol(xi)] <- NA 
+    xi[i, 1:(ncat[i] - 1)] <- sort(xi[i, 1:(ncat[i] - 1)], decreasing = TRUE)
     if (k[i] != 0) {
       alpha[i, 1:k[i]] <- runif(k[i], alpha_dist[1], alpha_dist[2])
       tau[i, 1:k[i]] <- runif(k[i], tau_dist[1], tau_dist[2])

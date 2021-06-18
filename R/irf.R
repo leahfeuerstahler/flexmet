@@ -88,7 +88,7 @@ irf_fmp <- function(theta, bmat, maxncat = 2, returncat = NA,
             out[, , i] <- exp(theta %*% t(bm) * (i - 1) +
                                   rep(1, ntheta) %*% t(xis[i - 1, ]))
         }
-        out[is.infinite(out)] <- 1e+308
+        out[is.infinite(out)] <- 1e+200
         den <- apply(out, c(1, 2), sum, na.rm = TRUE)
         for (i in 1:maxncat)
             out[, , i] <- out[, , i] / den

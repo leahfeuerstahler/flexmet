@@ -317,9 +317,11 @@ fmp <- function(dat, k, start_vals = NULL,
   parmat$est <- as.logical(estmat)
 
   # alpha/tau should equal zero/-Inf if not estimated
+  # xi should equal NA if not estimated
   # don't need to set alpha = -Inf since all alphas are estimated
   parmat$value <- 0
   parmat$value[grep("tau", parmat$name)] <- -Inf
+  parmat$value[grep("xi", parmat$name)] <- NA
 
   # add start values
   if (!is.null(start_vals)) parmat$value[parmat$est] <- start_vals
@@ -327,7 +329,7 @@ fmp <- function(dat, k, start_vals = NULL,
     for (i in 1:n_items) {
       parmat$value[grepl("xi", parmat$name) & parmat$item == i & parmat$est] <-
         qnorm(cumsum(table(dat[, i]))[1:(ncat[i] - 1)] / length(dat[, i]))
-    }
+      }
     parmat$value[grep("omega", parmat$name)] <- log(1)
     parmat$value[grepl("alpha", parmat$name) & parmat$est] <- 0
     parmat$value[grepl("tau", parmat$name) & parmat$est] <- log(.01)
@@ -368,13 +370,21 @@ fmp <- function(dat, k, start_vals = NULL,
         subpars <- pars[pars$item == itemnames[i], ]
         vals <- parmat$value[parmat$item == i]
         if (k[i] == 0) {
-          vals[1] <- subpars$value[2] # xi
-          vals[2] <- log(subpars$value[1]) #omega
+          vals[1:(ncat[i] - 1)] <- subpars$value[2:ncat[i]] # xis
+          if(ncat[i] > 2){
+            for(ii in 3:maxncat)
+              vals[ii-1] <- vals[ii - 1] - sum(vals[1:(ii-2)])
+          }
+          vals[maxncat] <- log(subpars$value[1]) #omega
           parmat$value[parmat$item == i] <- vals
         } else { # if monopoly
-          vals[1] <- subpars$value[2] # xi
-          vals[2] <- subpars$value[1] #omega
-          vals[3:nrow(subpars)] <- subpars$value[-c(1, 2)]
+          vals[1:(ncat[i] - 1)] <- subpars$value[2:ncat[i]] # xis
+          if(ncat[i] > 2){
+            for(ii in 3:maxncat)
+              vals[ii-1] <- vals[ii - 1] - sum(vals[1:(ii-2)])
+          }
+          vals[maxncat] <- subpars$value[1] #omega
+          vals[(maxncat + 1):length(vals)] <- subpars$value[-c(1:ncat[i])]
           parmat$value[parmat$item == i] <- vals
         }
       }
@@ -383,10 +393,10 @@ fmp <- function(dat, k, start_vals = NULL,
         vals <- parmat$value[parmat$est & parmat$item == i]
         if (k[i] == 0) {
           pars$value[pars$item == itemnames[i]] <-
-            c(exp(vals[2]), vals[1], 0, 1) # a1, d, g = 0, u = 1
+            c(exp(vals[ncat[i]]), vals[1:(ncat[i] - 1)], 0, 1)
         } else { # if monopoly
           pars$value[pars$item == itemnames[i]] <-
-            vals[c(2, 1, 3:length(vals))]
+            vals[c(2:ncat[i], 1, (ncat[i] + 1):length(vals))]
         }
       }
     }
@@ -411,19 +421,23 @@ fmp <- function(dat, k, start_vals = NULL,
 
     ## update bmat, parmat
     mirtests <- mirt::extract.mirt(mod, "parvec")
-    mirtests <- tapply(mirtests, parmat$item[parmat$est], function(x) {
-      x[c(1, 2:maxncat)] <- x[c(2:maxncat, 1)]
-      if (length(x) == maxncat){
-        x[maxncat] <- log(x[maxncat])
-        if(maxncat > 2){
+    pars2 <- subset(pars, pars$est)
+    mirtests <- sapply(unique(parmat$item), function(i){
+      x <- mirtests[pars2$item == unique(pars2$item)[i]]
+      x[c(1, 2:ncat[i])] <- x[c(2:ncat[i], 1)]
+      if (k[i] == 0){
+        x[ncat[i]] <- log(x[ncat[i]])
+        if(ncat[i] > 2){
           for(i in 3:maxncat) x[i - 1] <- x[i - 1] - sum(x[1:(i - 2)])
-        }
-      } 
+        } 
+      }
       x
     })
 
     parmat$estimate <- parmat$value
     parmat$estimate[parmat$est] <- unlist(mirtests)
+    
+    parmat$estimate[grepl("tau", parmat$name) & !parmat$est] <- -Inf
 
     log_lik <- mirt::extract.mirt(mod, "logLik")
     aic <- mirt::extract.mirt(mod, "AIC")
@@ -462,11 +476,11 @@ fmp <- function(dat, k, start_vals = NULL,
       parmat$estimate[parmat$est] <- unlist(lapply(mods, function(x) x$par))
 
       ## find the standard errors
-      info <- try(solve(hess_logl(parvec = parmat$estimate, dat = dat,
+      info <- try(solve(hess_logl(parvec = parmat$estimate[parmat$est], dat = dat,
                                   maxncat = maxncat, thetas = tsur,
                                   parmat = parmat)))
 
-      parmat$error <- suppressWarnings(try(sqrt(diag(info))))
+      parmat$error[parmat$est] <- suppressWarnings(try(sqrt(diag(info))))
 
       log_lik <- mod$value
       aic <- 2 * mod$value + 2 * sum(parmat$est)
@@ -498,6 +512,7 @@ fmp <- function(dat, k, start_vals = NULL,
   if (maxk > 0) {
     bmat <- t(sapply(1:n_items, function(i) {
       subparmat <- subset(parmat, parmat$item == i)
+      
       greek2b(xi = subparmat$estimate[grep("xi", subparmat$name)],
               omega = subparmat$estimate[grep("omega", subparmat$name)],
               alpha = subparmat$estimate[grep("alpha", subparmat$name)],

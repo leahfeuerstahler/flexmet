@@ -247,10 +247,11 @@ logl <- function(parvec, dat, thetas, maxncat = 2, parmat) {
 gr_logl <- function(parvec, dat, thetas, maxncat, parmat) {
 
   dat <- as.matrix(dat)
+  ntheta <- length(thetas)
+  if(length(thetas) == 1) dat <- t(dat)
 
   n_items <- ncol(dat)
-  ntheta <- nrow(dat)
-
+  
   parmat$value[parmat$est] <- parvec
   
   pars <- matrix(parmat$value, nrow = n_items, byrow = TRUE)
@@ -350,7 +351,7 @@ hess_logl <- function(parvec, dat, thetas, maxncat, parmat) {
   parmat$value[parmat$est] <- parvec
   pars <- matrix(parmat$value, nrow = n_items, byrow = TRUE)
 
-  maxk <- (ncol(pars) - 2) / 2
+  maxk <- (ncol(pars) - maxncat) / 2
 
   # use analytic hessian if maxk = 0, else do cross-product of gradient
   if (maxncat == 2) {
@@ -426,7 +427,7 @@ hess_logl <- function(parvec, dat, thetas, maxncat, parmat) {
   } else{
 
     crossprods <- lapply(1:length(thetas), function(i) {
-      gr <- gr_logl(parvec = parmat$value, dat = dat[i, ], thetas = thetas[i],
+      gr <- gr_logl(parvec = parmat$value[parmat$est], dat = dat[i, ], thetas = thetas[i],
                     maxncat = maxncat, parmat = parmat)
       gr %*% t(gr)
     })
@@ -635,7 +636,7 @@ logl_em <- function(parvec,
                         priormat$value, priormat$prior_1, priormat$prior_2)),
                       0)
 
-  -sum(r_bar * log(probs)) - sum(priorlogl)
+  -sum(r_bar * log(probs), na.rm = TRUE) - sum(priorlogl)
 }
 
 gr_logl_em <- function(parvec,
