@@ -272,7 +272,7 @@ fmp_1 <- function(dat, k, tsur, start_vals = NULL, method = "CG",
 
 fmp <- function(dat, k, start_vals = NULL,
                 em = TRUE, eps = 1e-04, n_quad = 49,
-                method = "BFGS", max_em = 500,
+                method = "CG", max_em = 500,
                 priors = list(xi = c("none", NaN, NaN),
                               omega = c("none", NaN, NaN),
                               alpha = c("none", NaN, NaN),

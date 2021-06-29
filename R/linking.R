@@ -224,7 +224,7 @@ hb_link <- function(bmat1, bmat2, maxncat = 2,
         irf2 <- apply(irf2, c(1, 2), function(x)
             sum(x * 0:(maxncat - 1), na.rm = TRUE))
 
-        sqrt(sum(int[, 2] * rowSums((irf1 - irf2) ^ 2)))
+        sqrt(sum(int[, 2] * (rowSums(irf1) - rowSums(irf2)) ^ 2))
     }
 
     out <- optim(par = c(0, 1, rep(0, 2 * k_theta)), fn = rimse_dif,
