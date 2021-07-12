@@ -8,10 +8,10 @@ sim_bmat(
   n_items,
   k,
   ncat = 2,
-  xi_dist = c(-1, 1),
-  omega_dist = c(-1, 1),
-  alpha_dist = c(-1, 0.5),
-  tau_dist = c(-7, -1)
+  xi_dist = list(runif, min = -1, max = 1),
+  omega_dist = list(runif, min = -1, max = 1),
+  alpha_dist = list(runif, min = -1, max = 0.5),
+  tau_dist = list(runif, min = -3, max = 0)
 )
 }
 \arguments{
@@ -22,20 +22,28 @@ vector of length n_items if different items have different item complexities.}
 
 \item{ncat}{Vector of length n_item giving the number of response
 categories for each item. If of length 1, all items will have the same
-number of response categories}
+number of response categories.}
 
-\item{xi_dist}{Vector of two elements indicating the lower and upper
-bounds of the uniform distribution from which to draw xsi parameters.}
+\item{xi_dist}{List of information about the distribution from which to 
+randomly sample xi parameters. The first element should be a function that
+generates random deviates (e.g., runif or rnorm), and further elements 
+should be named arguments to the function.}
 
-\item{omega_dist}{Vector of two elements indicating the lower and upper
-bounds of the uniform distribution from which to draw omega parameters.}
+\item{omega_dist}{List of information about the distribution from which to 
+randomly sample omega parameters. The first element should be a function that
+generates random deviates (e.g., runif or rnorm), and further elements 
+should be named arguments to the function.}
 
-\item{alpha_dist}{Vector of two elements indicating the lower and upper
-bounds of the uniform distribution from which to draw alpha parameters.
+\item{alpha_dist}{List of information about the distribution from which to 
+randomly sample alpha parameters. The first element should be a function that
+generates random deviates (e.g., runif or rnorm), and further elements 
+should be named arguments to the function.
 Ignored if all k = 0.}
 
-\item{tau_dist}{Vector of two elements indicating the lower and upper
-bounds of the uniform distribution from which to draw tau parameters.
+\item{tau_dist}{List of information about the distribution from which to 
+randomly sample tau parameters. The first element should be a function that
+generates random deviates (e.g., runif or rnorm), and further elements 
+should be named arguments to the function.
 Ignored if all k = 0.}
 }
 \value{

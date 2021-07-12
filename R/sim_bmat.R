@@ -8,16 +8,24 @@
 #' vector of length n_items if different items have different item complexities.
 #' @param ncat Vector of length n_item giving the number of response
 #' categories for each item. If of length 1, all items will have the same
-#' number of response categories
-#' @param xi_dist Vector of two elements indicating the lower and upper
-#' bounds of the uniform distribution from which to draw xsi parameters.
-#' @param omega_dist Vector of two elements indicating the lower and upper
-#' bounds of the uniform distribution from which to draw omega parameters.
-#' @param alpha_dist Vector of two elements indicating the lower and upper
-#' bounds of the uniform distribution from which to draw alpha parameters.
+#' number of response categories.
+#' @param xi_dist List of information about the distribution from which to 
+#' randomly sample xi parameters. The first element should be a function that
+#' generates random deviates (e.g., runif or rnorm), and further elements 
+#' should be named arguments to the function.
+#' @param omega_dist List of information about the distribution from which to 
+#' randomly sample omega parameters. The first element should be a function that
+#' generates random deviates (e.g., runif or rnorm), and further elements 
+#' should be named arguments to the function.
+#' @param alpha_dist List of information about the distribution from which to 
+#' randomly sample alpha parameters. The first element should be a function that
+#' generates random deviates (e.g., runif or rnorm), and further elements 
+#' should be named arguments to the function.
 #' Ignored if all k = 0.
-#' @param tau_dist Vector of two elements indicating the lower and upper
-#' bounds of the uniform distribution from which to draw tau parameters.
+#' @param tau_dist List of information about the distribution from which to 
+#' randomly sample tau parameters. The first element should be a function that
+#' generates random deviates (e.g., runif or rnorm), and further elements 
+#' should be named arguments to the function.
 #' Ignored if all k = 0.
 #'
 #' @return
@@ -44,10 +52,10 @@
 
 sim_bmat <- function(n_items, k,
                      ncat = 2,
-                     xi_dist = c(-1, 1),
-                     omega_dist = c(-1, 1),
-                     alpha_dist = c(-1, .5),
-                     tau_dist = c(-3, 0)) {
+                     xi_dist = list(runif, min = -1, max = 1),
+                     omega_dist = list(runif, min = -1, max = 1),
+                     alpha_dist = list(runif, min = -1, max = .5),
+                     tau_dist = list(runif, min = -3, max = 0)) {
 
   maxk <- max(k)
 
@@ -66,10 +74,12 @@ sim_bmat <- function(n_items, k,
     stop("ncat must either have 1 or n_items elements")
 
   # randomly draw xi and omega parameters
-  xi <- matrix(runif(n_items * (maxncat - 1), xi_dist[1], xi_dist[2]),
+  xi <- matrix(do.call(xi_dist[[1]], 
+                       c(list(n = n_items * (maxncat - 1)), xi_dist[-1])),
                ncol = maxncat - 1)
-  omega <- runif(n_items, omega_dist[1], omega_dist[2])
-
+  
+  omega <- do.call(omega_dist[[1]], c(list(n = n_items), omega_dist[-1]))
+  
   # randomly draw alpha and tau parameters
   alpha <- matrix(0, nrow = n_items, ncol = maxk)
   tau <- matrix(-Inf, nrow = n_items, ncol = maxk)
@@ -78,8 +88,10 @@ sim_bmat <- function(n_items, k,
     if (ncat[i] < maxncat) xi[i, ncat[i]:ncol(xi)] <- NA 
     xi[i, 1:(ncat[i] - 1)] <- sort(xi[i, 1:(ncat[i] - 1)], decreasing = TRUE)
     if (k[i] != 0) {
-      alpha[i, 1:k[i]] <- runif(k[i], alpha_dist[1], alpha_dist[2])
-      tau[i, 1:k[i]] <- runif(k[i], tau_dist[1], tau_dist[2])
+      alpha[i, 1:k[i]] <- do.call(alpha_dist[[1]], 
+                                  c(list(n = k[i]), alpha_dist[-1]))
+      tau[i, 1:k[i]] <- do.call(tau_dist[[1]],
+                                c(list(n = k[i]), tau_dist[-1]))
       bmat[i, ] <- greek2b(xi = xi[i, ], omega = omega[i],
                            alpha = alpha[i, ], tau = tau[i, ])
     } else bmat[i, 1:maxncat] <- greek2b(xi = xi[i, ], omega = omega[i])
