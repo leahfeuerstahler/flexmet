@@ -86,7 +86,7 @@ Feuerstahler (2016, 2019) for details on linking with the FMP model.
 \examples{
 
 set.seed(2342)
-bmat <- sim_bmat(n_items = 20, k = 2)$bmat
+bmat <- sim_bmat(n_items = 10, k = 2)$bmat
 
 theta1 <- rnorm(100)
 theta2 <- rnorm(100, mean = -1)
