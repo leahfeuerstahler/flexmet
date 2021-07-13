@@ -115,12 +115,15 @@
 #'
 #' ## random-effects estimation
 #' 
+#' \donttest{
 #' fmp0_random <- fmp(dat = dat, k = 0, em = TRUE)
+#' 
 #' 
 #' ## random-effects estimation using mirt's estimation engine
 #' 
 #' fmp0_mirt <- fmp(dat = dat, k = 0, em = "mirt")
 #'
+#' }
 #' @references
 #'
 #' Chalmers, R. P. (2012). mirt: A multidimensional item response theory
@@ -133,7 +136,7 @@
 #'
 #' Elphinstone, C. D. (1985). \emph{A method of distribution and density
 #' estimation} (Unpublished dissertation). University of South Africa,
-#' Pretoria, South Africa. \doi{20.500.11892/132832}
+#' Pretoria, South Africa.
 #'
 #' Falk, C. F., & Cai, L. (2016a). Maximum marginal likelihood estimation of a
 #' monotonic polynomial generalized partial credit model with applications to

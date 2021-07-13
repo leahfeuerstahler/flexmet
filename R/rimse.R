@@ -37,16 +37,20 @@
 #' fmp0a <- fmp_1(dat = dat[, 1], k = 0, tsur = theta)
 #' fmp0b <- fmp_1(dat = dat[, 2], k = 0, tsur = theta)
 #'
+#' \donttest{
 #' # k = 1
 #' fmp1a <- fmp_1(dat = dat[, 1], k = 1, tsur = theta)
 #' fmp1b <- fmp_1(dat = dat[, 2], k = 1, tsur = theta)
+#' }
 #'
 #' ## compare estimated curves to the data-generating curve
 #' rimse(fmp0a$bmat, bmat[1, -c(2:4)])
-#' rimse(fmp1a$bmat, bmat[1, -c(2:4)])
 #' rimse(fmp0b$bmat, bmat[2, ], ncat = 5)
+#' 
+#' \donttest{
+#' rimse(fmp1a$bmat, bmat[1, -c(2:4)])
 #' rimse(fmp1b$bmat, bmat[2, ], ncat = 5)
-#'
+#' }
 #'
 #' @references Ramsay, J. O. (1991). Kernel smoothing approaches to
 #' nonparametric item characteristic curve estimation. \emph{Psychometrika},

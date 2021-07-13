@@ -100,11 +100,12 @@ fmp0_2 <- fmp(dat = dat2, k = 0, em = FALSE)
 
 # Stocking-Lord linking
 
+\donttest{
 sl_res <- sl_link(bmat1 = fmp0_1$bmat[1:5, ],
                   bmat2 = fmp0_2$bmat[1:5, ],
                   k_theta = 0)
 
-\dontrun{
+
 hb_res <- hb_link(bmat1 = fmp0_1$bmat[1:5, ],
                   bmat2 = fmp0_2$bmat[1:5, ],
                   k_theta = 0)
