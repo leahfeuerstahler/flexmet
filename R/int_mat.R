@@ -15,6 +15,7 @@
 #' @seealso \link{rimse} \link{th_est_ml} \link{th_est_eap} \link{sl_link}
 #' \link{hb_link}
 #'
+#'  @importFrom stats dnorm
 #' @export
 
 

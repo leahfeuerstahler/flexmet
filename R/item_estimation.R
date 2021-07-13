@@ -61,7 +61,7 @@
 #' @details The FMP item response function for a single item \eqn{i} with 
 #' responses in categories \eqn{c = 0, ..., C_i - 1} is specified using the 
 #' composite function,
-#' \deqn{P(X_i = c | \theta) = exp(\sum_{v=0}^c(b_0i_{v}} + m_i(\theta))) / 
+#' \deqn{P(X_i = c | \theta) = exp(\sum_{v=0}^c(b_0i_{v} + m_i(\theta))) / 
 #' (\sum_{u=0}^{C_i - 1} exp(\sum_{v=0}^u(b_{0i_{v}} + m_i(\theta)))) }
 #' where \eqn{m(\theta)} is an unbounded and monotonically increasing polynomial
 #' function of the latent trait \eqn{\theta}, excluding the intercept (s). 
@@ -109,16 +109,12 @@
 #' # k = 1
 #' fmp1_it_1 <- fmp_1(dat = dat[, 1], k = 1, tsur = tsur)
 #'
-#' # k = 2
-#' fmp2_it_1 <- fmp_1(dat = dat[, 1], k = 2, tsur = tsur)
-#'
-#'
 #' ## fixed-effects estimation for all items
 #'
 #' fmp0_fixed <- fmp(dat = dat, k = 0, em = FALSE)
 #'
 #' ## random-effects estimation
-#'
+#' 
 #' fmp0_random <- fmp(dat = dat, k = 0, em = TRUE)
 #' 
 #' ## random-effects estimation using mirt's estimation engine
@@ -169,7 +165,7 @@
 #' algorithm. \emph{Applied Psychological Measurement}, \emph{16}, 159--176. 
 #' \doi{10.1177/014662169201600206}
 #'
-#' @importFrom stats dnorm qnorm optimize
+#' @importFrom stats dnorm qnorm optimize rnorm
 #' @export
 
 
@@ -241,11 +237,14 @@ fmp_1 <- function(dat, k, tsur, start_vals = NULL, method = "CG",
   parmat$estimate <- mod$par
 
   ## find the standard errors
-  info <- try(solve(hess_logl(parvec = parmat$estimate, maxncat = ncat,
-                                   dat = dat, thetas = tsur, parmat = parmat)))
+  info <- tryCatch(solve(hess_logl(parvec = parmat$estimate, maxncat = ncat,
+                                   dat = dat, thetas = tsur, parmat = parmat)),
+                   error = function(e)
+                     message(e, "Information matrix is singular"))
 
-  parmat$error <- suppressWarnings(try(sqrt(diag(info))))
-
+  parmat$error <- tryCatch(sqrt(diag(info)), 
+                           error = function(e) 
+                             message(e, "Standard errors cannot be calculated"))
 
   xi <- parmat$estimate[grep("xi", parmat$name)]
   omega <- parmat$estimate[grep("omega", parmat$name)]
@@ -476,11 +475,15 @@ fmp <- function(dat, k, start_vals = NULL,
       parmat$estimate[parmat$est] <- unlist(lapply(mods, function(x) x$par))
 
       ## find the standard errors
-      info <- try(solve(hess_logl(parvec = parmat$estimate[parmat$est], dat = dat,
-                                  maxncat = maxncat, thetas = tsur,
-                                  parmat = parmat)))
-
-      parmat$error[parmat$est] <- suppressWarnings(try(sqrt(diag(info))))
+      info <- tryCatch(solve(hess_logl(parvec = parmat$estimate[parmat$est], 
+                                       dat = dat, maxncat = maxncat, 
+                                       thetas = tsur, parmat = parmat)),
+                       error = function(e)
+                         message(e, "Information matrix is singular"))
+      
+      parmat$error[parmat$est] <- tryCatch(sqrt(diag(info)),
+                                           error = function(e) 
+                            message(e, "Standard errors cannot be calculated"))
 
       log_lik <- mod$value
       aic <- 2 * mod$value + 2 * sum(parmat$est)

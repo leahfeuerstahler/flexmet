@@ -1,7 +1,7 @@
 Package: flexmet
 Type: Package
 Title: Flexible Latent Trait Metrics using the Filtered Monotonic Polynomial Item Response Model
-Version: 1.1.0.0
+Version: 1.1
 Authors@R: person("Leah", "Feuerstahler", email = "lfeuerstahler@fordham.edu",
     role = c("aut","cre"))
 Description: Application of the filtered monotonic polynomial (FMP) item response
